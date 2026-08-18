@@ -1,0 +1,21 @@
+@import 'tailwindcss';
+@import '../../../packages/ui/src/styles/theme.css';
+@source "../../../packages/ui/src";
+
+html {
+  background: white;
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}

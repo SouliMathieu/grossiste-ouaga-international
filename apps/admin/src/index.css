@@ -1,0 +1,10 @@
+@import 'tailwindcss';
+@import '../../../packages/ui/src/styles/theme.css';
+@source "../../../packages/ui/src";
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background: var(--color-goi-surface);
+}

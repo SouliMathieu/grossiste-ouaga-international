@@ -1,0 +1,36 @@
+@theme {
+  --color-goi-navy: #0b1f33;
+  --color-goi-blue: #2563eb;
+  --color-goi-gold: #f4b740;
+  --color-goi-emerald: #0f9d76;
+  --color-goi-danger: #b42318;
+  --color-goi-slate: #334155;
+  --color-goi-muted: #64748b;
+  --color-goi-surface: #f5f7fa;
+
+  --radius-goi-sm: 0.5rem;
+  --radius-goi-md: 0.75rem;
+  --radius-goi-lg: 1.25rem;
+
+  --shadow-goi-1: 0 1px 2px rgb(15 23 42 / 0.05), 0 1px 3px rgb(15 23 42 / 0.08);
+  --shadow-goi-2: 0 12px 28px rgb(15 23 42 / 0.14);
+}
+
+:root {
+  color: var(--color-goi-slate);
+  background: white;
+  font-family:
+    Inter,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--color-goi-blue) 22%, white);
+}
