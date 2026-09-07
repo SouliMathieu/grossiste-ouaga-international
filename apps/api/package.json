@@ -8,17 +8,26 @@
     "build": "tsc -p tsconfig.json",
     "start": "node dist/server.js",
     "typecheck": "tsc -p tsconfig.json --noEmit --pretty false",
-    "test": "vitest run src"
+    "test": "vitest run src",
+    "predev": "prisma generate",
+    "prebuild": "prisma generate",
+    "db:migrate:deploy": "prisma migrate deploy"
   },
   "dependencies": {
     "@goi/types": "*",
+    "@prisma/adapter-mariadb": "7.9.1",
+    "@prisma/client": "7.9.1",
+    "bcryptjs": "^3.0.3",
+    "cookie-parser": "^1.4.7",
     "cors": "latest",
-    "dotenv": "latest",
+    "dotenv": "^17.4.2",
     "express": "^5.0.0",
     "helmet": "latest",
+    "prisma": "7.9.1",
     "zod": "^4.0.0"
   },
   "devDependencies": {
+    "@types/cookie-parser": "^1.4.10",
     "@types/cors": "latest",
     "@types/express": "latest",
     "@types/node": "latest",

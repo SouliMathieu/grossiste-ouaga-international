@@ -9,3 +9,5 @@ coverage/
 .vscode/
 .idea/
 apps/api/uploads/
+**/*.tsbuildinfo
+apps/api/src/generated/
