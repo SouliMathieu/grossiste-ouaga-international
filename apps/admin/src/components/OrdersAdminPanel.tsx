@@ -218,15 +218,12 @@ export function OrdersAdminPanel() {
   }
 
   return (
-    <section className="mt-14 border-t border-slate-300 pt-10">
-      <div className="flex flex-wrap items-end justify-between gap-4">
+    <section className="space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <p className="text-sm font-semibold text-blue-600">
-            Commandes
-          </p>
 
-          <h2 className="mt-1 text-3xl font-extrabold text-slate-900">
-            Gestion des commandes
+          <h2 className="text-xl font-bold text-slate-950">
+            Liste des commandes
           </h2>
 
           <p className="mt-2 text-slate-500">

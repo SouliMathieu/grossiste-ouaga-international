@@ -227,19 +227,14 @@ export function PaymentAccountsAdminPanel() {
   }
 
   return (
-    <section className="mt-14 border-t border-slate-300 pt-10">
+    <section className="space-y-6">
       <div>
-        <p className="text-sm font-semibold text-blue-600">
-          Paiements
-        </p>
-
-        <h2 className="mt-1 text-3xl font-extrabold text-slate-900">
+        <h2 className="text-xl font-bold text-slate-950">
           Comptes Mobile Money
         </h2>
 
-        <p className="mt-2 text-slate-500">
-          Configurez les coordonnées réellement
-          affichées aux clients.
+        <p className="mt-1 text-sm text-slate-500">
+          Coordonnées affichées aux clients lors du paiement.
         </p>
       </div>
 
@@ -277,7 +272,7 @@ export function PaymentAccountsAdminPanel() {
                   method,
                 )
               }
-              className="rounded-xl bg-white p-5 shadow-sm sm:p-6"
+              className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6"
             >
               <div className="flex items-center justify-between gap-3">
                 <h3 className="text-xl font-bold text-slate-900">

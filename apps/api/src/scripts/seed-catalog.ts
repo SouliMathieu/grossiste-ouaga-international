@@ -1,5 +1,11 @@
 import { prisma } from '../lib/prisma.js';
 
+if (process.env.NODE_ENV === 'production') {
+  throw new Error(
+    'Le catalogue de démonstration ne doit jamais être injecté en production.',
+  );
+}
+
 async function main() {
   const categories = [
     {

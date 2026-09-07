@@ -96,6 +96,22 @@ function getStatusLabel(status: string) {
   }
 }
 
+function getAvailabilityLabel(status: string) {
+  switch (status) {
+    case 'IN_STOCK':
+      return 'En stock';
+    case 'LOW_STOCK':
+      return 'Stock faible';
+    case 'OUT_OF_STOCK':
+      return 'Rupture';
+    case 'ON_ORDER':
+      return 'Sur commande';
+    default:
+      return status;
+  }
+}
+
+
 export function CatalogAdminPanel() {
   const [categories, setCategories] = useState<
     Category[]
@@ -417,21 +433,18 @@ export function CatalogAdminPanel() {
   return (
     <section
       id="catalog-admin"
-      className="mt-14 border-t border-slate-300 pt-10"
+      className="space-y-6"
     >
-      <div>
-        <p className="text-sm font-semibold text-blue-600">
-          Catalogue
-        </p>
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-bold text-slate-950">
+            Produits
+          </h2>
 
-        <h2 className="mt-1 text-3xl font-extrabold text-slate-900">
-          Gestion des produits
-        </h2>
-
-        <p className="mt-2 text-slate-500">
-          Créez, modifiez, publiez ou archivez les
-          produits affichés sur la boutique.
-        </p>
+          <p className="mt-1 text-sm text-slate-500">
+            Créez, modifiez, publiez ou archivez les références de la boutique.
+          </p>
+        </div>
       </div>
 
       {error && (
@@ -452,7 +465,7 @@ export function CatalogAdminPanel() {
       <form
         id="catalog-form"
         onSubmit={handleSubmit}
-        className="mt-8 rounded-xl bg-white p-5 shadow-sm sm:p-6"
+        className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6"
       >
         <div className="flex flex-wrap items-center justify-between gap-4">
           <h3 className="text-xl font-bold text-slate-900">
@@ -816,7 +829,7 @@ export function CatalogAdminPanel() {
             Chargement...
           </div>
         ) : (
-          <div className="mt-5 overflow-x-auto rounded-xl bg-white shadow-sm">
+          <div className="mt-5 overflow-x-auto rounded-2xl border border-slate-200 bg-white">
             <table className="min-w-[900px] w-full text-left text-sm">
               <thead className="border-b border-slate-200 bg-slate-50">
                 <tr>
@@ -857,7 +870,7 @@ export function CatalogAdminPanel() {
                     </td>
 
                     <td className="p-4">
-                      {product.availability}
+                      {getAvailabilityLabel(product.availability)}
                     </td>
 
                     <td className="p-4">
