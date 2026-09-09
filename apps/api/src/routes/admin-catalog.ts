@@ -2,6 +2,10 @@ import { randomUUID } from 'node:crypto';
 import { Router } from 'express';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma.js';
+import {
+  serializeProductMediaLinks,
+  validateProductMediaSelection,
+} from '../lib/product-media.js';
 import { requireAdmin } from '../middleware/require-admin.js';
 
 export const adminCatalogRouter = Router();
@@ -41,6 +45,18 @@ const productSchema = z.object({
     'ARCHIVED',
   ]),
   imageUrl: nullableText,
+  mainMediaId: z
+    .number()
+    .int()
+    .positive()
+    .nullable()
+    .optional(),
+  galleryMediaIds: z
+    .array(
+      z.number().int().positive(),
+    )
+    .max(20)
+    .optional(),
   keywords: nullableText,
 }).superRefine((data, ctx) => {
   const priceOnRequest =
@@ -182,6 +198,9 @@ function serializeProduct(product: {
   status: string;
   imageUrl: string | null;
   keywords: string | null;
+  media: Parameters<
+    typeof serializeProductMediaLinks
+  >[0];
   createdAt: Date;
   updatedAt: Date;
   category: {
@@ -190,6 +209,11 @@ function serializeProduct(product: {
     slug: string;
   };
 }) {
+  const serializedMedia =
+    serializeProductMediaLinks(
+      product.media,
+    );
+
   return {
     id: product.id,
     categoryId: product.categoryId,
@@ -219,11 +243,122 @@ function serializeProduct(product: {
     featured: product.featured,
     status: product.status,
     imageUrl: product.imageUrl,
+    mainMedia:
+      serializedMedia.mainMedia,
+    galleryMedia:
+      serializedMedia.galleryMedia,
     keywords: product.keywords,
     createdAt: product.createdAt,
     updatedAt: product.updatedAt,
     category: product.category,
   };
+}
+
+async function validateProductMediaAssets(
+  mainMediaId: number | null,
+  galleryMediaIds: number[],
+) {
+  const selectionError =
+    validateProductMediaSelection(
+      mainMediaId,
+      galleryMediaIds,
+    );
+
+  if (selectionError) {
+    return selectionError;
+  }
+
+  const mediaIds = [
+    ...new Set([
+      ...(mainMediaId === null
+        ? []
+        : [mainMediaId]),
+      ...galleryMediaIds,
+    ]),
+  ];
+
+  if (mediaIds.length === 0) {
+    return null;
+  }
+
+  const assets =
+    await prisma.mediaAsset.findMany({
+      where: {
+        id: {
+          in: mediaIds,
+        },
+      },
+      select: {
+        id: true,
+        resourceType: true,
+        status: true,
+      },
+    });
+
+  if (
+    assets.length !== mediaIds.length
+  ) {
+    return {
+      error: 'UNKNOWN_PRODUCT_MEDIA',
+      message:
+        'Un ou plusieurs médias sélectionnés sont introuvables.',
+    };
+  }
+
+  if (
+    assets.some(
+      (asset) =>
+        asset.status !== 'READY',
+    )
+  ) {
+    return {
+      error: 'PRODUCT_MEDIA_NOT_READY',
+      message:
+        'Seuls les médias actifs peuvent être associés à un produit.',
+    };
+  }
+
+  if (
+    assets.some(
+      (asset) =>
+        asset.resourceType !== 'IMAGE',
+    )
+  ) {
+    return {
+      error: 'INVALID_PRODUCT_MEDIA_TYPE',
+      message:
+        'L’image principale et la galerie doivent utiliser des images.',
+    };
+  }
+
+  return null;
+}
+
+function buildProductMediaRows(
+  productId: number,
+  mainMediaId: number | null,
+  galleryMediaIds: number[],
+) {
+  return [
+    ...(mainMediaId === null
+      ? []
+      : [
+          {
+            productId,
+            mediaId: mainMediaId,
+            role: 'MAIN' as const,
+            sortOrder: 0,
+          },
+        ]),
+    ...galleryMediaIds.map(
+      (mediaId, index) => ({
+        productId,
+        mediaId,
+        role: 'GALLERY' as const,
+        sortOrder: index,
+      }),
+    ),
+  ];
 }
 
 adminCatalogRouter.get(
@@ -237,6 +372,14 @@ adminCatalogRouter.get(
               id: true,
               name: true,
               slug: true,
+            },
+          },
+          media: {
+            include: {
+              media: true,
+            },
+            orderBy: {
+              sortOrder: 'asc',
             },
           },
         },
@@ -292,6 +435,24 @@ adminCatalogRouter.post(
           message:
             'La catégorie sélectionnée est introuvable.',
         });
+      }
+
+      const mainMediaId =
+        parsed.data.mainMediaId ?? null;
+
+      const galleryMediaIds =
+        parsed.data.galleryMediaIds ?? [];
+
+      const mediaValidation =
+        await validateProductMediaAssets(
+          mainMediaId,
+          galleryMediaIds,
+        );
+
+      if (mediaValidation) {
+        return response.status(400).json(
+          mediaValidation,
+        );
       }
 
       const product = await prisma.$transaction(
@@ -374,6 +535,19 @@ adminCatalogRouter.post(
               )
             : baseSlug;
 
+          const mediaRows =
+            buildProductMediaRows(
+              temporaryProduct.id,
+              mainMediaId,
+              galleryMediaIds,
+            );
+
+          if (mediaRows.length > 0) {
+            await tx.productMedia.createMany({
+              data: mediaRows,
+            });
+          }
+
           return tx.product.update({
             where: {
               id: temporaryProduct.id,
@@ -388,6 +562,14 @@ adminCatalogRouter.post(
                   id: true,
                   name: true,
                   slug: true,
+                },
+              },
+              media: {
+                include: {
+                  media: true,
+                },
+                orderBy: {
+                  sortOrder: 'asc',
                 },
               },
             },
@@ -479,7 +661,86 @@ adminCatalogRouter.patch(
         });
       }
 
-      const product = await prisma.product.update({
+      const mediaSelectionProvided =
+        parsed.data.mainMediaId !==
+          undefined ||
+        parsed.data.galleryMediaIds !==
+          undefined;
+
+      let mainMediaId:
+        number | null = null;
+
+      let galleryMediaIds:
+        number[] = [];
+
+      if (mediaSelectionProvided) {
+        const existingMedia =
+          await prisma.productMedia.findMany({
+            where: {
+              productId,
+              role: {
+                in: [
+                  'MAIN',
+                  'GALLERY',
+                ],
+              },
+            },
+            select: {
+              mediaId: true,
+              role: true,
+              sortOrder: true,
+            },
+            orderBy: {
+              sortOrder: 'asc',
+            },
+          });
+
+        const existingMainMediaId =
+          existingMedia.find(
+            (item) =>
+              item.role === 'MAIN',
+          )?.mediaId ?? null;
+
+        const existingGalleryMediaIds =
+          existingMedia
+            .filter(
+              (item) =>
+                item.role ===
+                'GALLERY',
+            )
+            .map(
+              (item) => item.mediaId,
+            );
+
+        mainMediaId =
+          parsed.data.mainMediaId ===
+          undefined
+            ? existingMainMediaId
+            : parsed.data.mainMediaId;
+
+        galleryMediaIds =
+          parsed.data.galleryMediaIds ===
+          undefined
+            ? existingGalleryMediaIds
+            : parsed.data.galleryMediaIds;
+
+        const mediaValidation =
+          await validateProductMediaAssets(
+            mainMediaId,
+            galleryMediaIds,
+          );
+
+        if (mediaValidation) {
+          return response
+            .status(400)
+            .json(mediaValidation);
+        }
+      }
+
+      const product =
+        await prisma.$transaction(
+          async (tx) => {
+            await tx.product.update({
         where: {
           id: productId,
         },
@@ -547,8 +808,72 @@ adminCatalogRouter.patch(
               slug: true,
             },
           },
+          media: {
+            include: {
+              media: true,
+            },
+            orderBy: {
+              sortOrder: 'asc',
+            },
+          },
         },
-      });
+            });
+
+            if (
+              mediaSelectionProvided
+            ) {
+              await tx.productMedia.deleteMany({
+                where: {
+                  productId,
+                  role: {
+                    in: [
+                      'MAIN',
+                      'GALLERY',
+                    ],
+                  },
+                },
+              });
+
+              const mediaRows =
+                buildProductMediaRows(
+                  productId,
+                  mainMediaId,
+                  galleryMediaIds,
+                );
+
+              if (
+                mediaRows.length > 0
+              ) {
+                await tx.productMedia.createMany({
+                  data: mediaRows,
+                });
+              }
+            }
+
+            return tx.product.findUniqueOrThrow({
+              where: {
+                id: productId,
+              },
+              include: {
+                category: {
+                  select: {
+                    id: true,
+                    name: true,
+                    slug: true,
+                  },
+                },
+                media: {
+                  include: {
+                    media: true,
+                  },
+                  orderBy: {
+                    sortOrder: 'asc',
+                  },
+                },
+              },
+            });
+          },
+        );
 
       return response.json({
         data: serializeProduct(product),

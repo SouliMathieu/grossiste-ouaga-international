@@ -2,6 +2,9 @@ import { Router } from 'express';
 import { z } from 'zod';
 import type { Prisma } from '../generated/prisma/client.js';
 import { prisma } from '../lib/prisma.js';
+import {
+  serializeProductMediaLinks,
+} from '../lib/product-media.js';
 
 export const catalogRouter = Router();
 
@@ -123,6 +126,9 @@ function serializeProduct(product: {
   stockQuantity: number | null;
   featured: boolean;
   imageUrl: string | null;
+  media: Parameters<
+    typeof serializeProductMediaLinks
+  >[0];
   createdAt: Date;
   category: {
     id: number;
@@ -130,7 +136,16 @@ function serializeProduct(product: {
     slug: string;
   };
 }) {
-  const promotion = getPromotionState(product);
+  const promotion =
+    getPromotionState(product);
+
+  const serializedMedia =
+    serializeProductMediaLinks(
+      product.media,
+      {
+        readyOnly: true,
+      },
+    );
 
   return {
     id: product.id,
@@ -160,7 +175,14 @@ function serializeProduct(product: {
     availability: product.availability,
     stockQuantity: product.stockQuantity,
     featured: product.featured,
-    imageUrl: product.imageUrl,
+    imageUrl:
+      serializedMedia.mainMedia
+        ?.secureUrl ??
+      product.imageUrl,
+    mainMedia:
+      serializedMedia.mainMedia,
+    galleryMedia:
+      serializedMedia.galleryMedia,
     createdAt: product.createdAt,
     category: product.category,
   };
@@ -319,6 +341,14 @@ catalogRouter.get('/products', async (request, response) => {
             slug: true,
           },
         },
+        media: {
+          include: {
+            media: true,
+          },
+          orderBy: {
+            sortOrder: 'asc',
+          },
+        },
       },
       orderBy,
       take: 100,
@@ -367,6 +397,14 @@ catalogRouter.get('/products/:slug', async (request, response) => {
             id: true,
             name: true,
             slug: true,
+          },
+        },
+        media: {
+          include: {
+            media: true,
+          },
+          orderBy: {
+            sortOrder: 'asc',
           },
         },
       },
