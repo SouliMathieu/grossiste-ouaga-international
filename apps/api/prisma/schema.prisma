@@ -230,11 +230,341 @@ model Product {
   createdAt        DateTime            @default(now()) @map("created_at")
   updatedAt        DateTime            @updatedAt @map("updated_at")
 
-  category Category @relation(fields: [categoryId], references: [id])
+  category         Category             @relation(fields: [categoryId], references: [id])
+  media            ProductMedia[]
+  serviceLinks     ServiceProduct[]
+  realizationLinks RealizationProduct[]
 
   @@index([categoryId, status])
   @@index([featured, status])
   @@index([availability])
   @@index([price])
   @@map("products")
+}
+
+enum MediaResourceType {
+  IMAGE
+  VIDEO
+  RAW
+}
+
+enum MediaStatus {
+  PENDING
+  READY
+  FAILED
+  ARCHIVED
+}
+
+enum RealizationStatus {
+  DRAFT
+  PUBLISHED
+}
+
+enum ProductMediaRole {
+  MAIN
+  GALLERY
+  DATASHEET
+}
+
+enum ContactMessageStatus {
+  UNREAD
+  READ
+  ARCHIVED
+}
+
+model MediaAsset {
+  id           Int               @id @default(autoincrement())
+  publicId     String            @unique @map("public_id") @db.VarChar(255)
+  secureUrl    String            @map("secure_url") @db.Text
+  resourceType MediaResourceType @map("resource_type")
+  width        Int?
+  height       Int?
+  format       String?           @db.VarChar(50)
+  bytes        Int?
+  alt          String?           @db.VarChar(255)
+  caption      String?           @db.VarChar(500)
+  folder       String            @db.VarChar(191)
+  status       MediaStatus       @default(PENDING)
+  createdAt    DateTime          @default(now()) @map("created_at")
+  updatedAt    DateTime          @updatedAt @map("updated_at")
+
+  serviceCovers      Service[]          @relation("ServiceCover")
+  serviceGallery     ServiceMedia[]
+  realizationCovers  Realization[]      @relation("RealizationCover")
+  realizationVideos  Realization[]      @relation("RealizationVideo")
+  realizationGallery RealizationMedia[]
+  productMedia       ProductMedia[]
+  homeSlides         HomeSlide[]        @relation("HomeSlideImage")
+
+  companyLogos    CompanySettings[] @relation("CompanyLogo")
+  companyFavicons CompanySettings[] @relation("CompanyFavicon")
+
+  aboutHeroVideos     AboutContent[] @relation("AboutHeroVideo")
+  aboutHeroPosters    AboutContent[] @relation("AboutHeroPoster")
+  aboutIntroImages    AboutContent[] @relation("AboutIntroImage")
+  aboutMissionImages  AboutContent[] @relation("AboutMissionImage")
+  aboutStrengthImages AboutContent[] @relation("AboutStrengthImage")
+
+  @@index([resourceType, status])
+  @@index([folder])
+  @@map("media_assets")
+}
+
+model Service {
+  id               Int      @id @default(autoincrement())
+  name             String   @db.VarChar(191)
+  slug             String   @unique @db.VarChar(191)
+  shortDescription String?  @map("short_description") @db.VarChar(500)
+  description      String?  @db.Text
+  coverMediaId     Int?     @map("cover_media_id")
+  sortOrder        Int      @default(0) @map("sort_order")
+  active           Boolean  @default(true)
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  coverMedia   MediaAsset?      @relation("ServiceCover", fields: [coverMediaId], references: [id], onDelete: SetNull)
+  gallery      ServiceMedia[]
+  realizations Realization[]
+  products     ServiceProduct[]
+
+  @@index([active, sortOrder])
+  @@index([coverMediaId])
+  @@map("services")
+}
+
+model ServiceMedia {
+  id        Int      @id @default(autoincrement())
+  serviceId Int      @map("service_id")
+  mediaId   Int      @map("media_id")
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  service Service    @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  media   MediaAsset @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+
+  @@unique([serviceId, mediaId])
+  @@index([serviceId, sortOrder])
+  @@index([mediaId])
+  @@map("service_media")
+}
+
+model ServiceProduct {
+  serviceId Int @map("service_id")
+  productId Int @map("product_id")
+  sortOrder Int @default(0) @map("sort_order")
+
+  service Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@id([serviceId, productId])
+  @@index([productId])
+  @@map("service_products")
+}
+
+model RealizationCategory {
+  id          Int      @id @default(autoincrement())
+  name        String   @db.VarChar(120)
+  slug        String   @unique @db.VarChar(140)
+  description String?  @db.Text
+  sortOrder   Int      @default(0) @map("sort_order")
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  realizations Realization[]
+
+  @@index([active, sortOrder])
+  @@map("realization_categories")
+}
+
+model Realization {
+  id                  Int               @id @default(autoincrement())
+  categoryId          Int               @map("category_id")
+  serviceId           Int?              @map("service_id")
+  slug                String            @unique @db.VarChar(191)
+  title               String            @db.VarChar(191)
+  location            String?           @db.VarChar(191)
+  projectDate         DateTime?         @map("project_date")
+  projectYear         Int?              @map("project_year")
+  summary             String?           @db.VarChar(500)
+  description         String?           @db.Text
+  technicalAttributes Json?             @map("technical_attributes")
+  coverMediaId        Int?              @map("cover_media_id")
+  videoMediaId        Int?              @map("video_media_id")
+  featured            Boolean           @default(false)
+  sortOrder           Int               @default(0) @map("sort_order")
+  status              RealizationStatus @default(DRAFT)
+  createdAt           DateTime          @default(now()) @map("created_at")
+  updatedAt           DateTime          @updatedAt @map("updated_at")
+
+  category   RealizationCategory  @relation(fields: [categoryId], references: [id])
+  service    Service?             @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+  coverMedia MediaAsset?          @relation("RealizationCover", fields: [coverMediaId], references: [id], onDelete: SetNull)
+  videoMedia MediaAsset?          @relation("RealizationVideo", fields: [videoMediaId], references: [id], onDelete: SetNull)
+  gallery    RealizationMedia[]
+  products   RealizationProduct[]
+
+  @@index([categoryId, status])
+  @@index([serviceId])
+  @@index([featured, status])
+  @@index([sortOrder])
+  @@map("realizations")
+}
+
+model RealizationMedia {
+  id            Int      @id @default(autoincrement())
+  realizationId Int      @map("realization_id")
+  mediaId       Int      @map("media_id")
+  sortOrder     Int      @default(0) @map("sort_order")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  realization Realization @relation(fields: [realizationId], references: [id], onDelete: Cascade)
+  media       MediaAsset  @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+
+  @@unique([realizationId, mediaId])
+  @@index([realizationId, sortOrder])
+  @@index([mediaId])
+  @@map("realization_media")
+}
+
+model RealizationProduct {
+  realizationId Int @map("realization_id")
+  productId     Int @map("product_id")
+  sortOrder     Int @default(0) @map("sort_order")
+
+  realization Realization @relation(fields: [realizationId], references: [id], onDelete: Cascade)
+  product     Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@id([realizationId, productId])
+  @@index([productId])
+  @@map("realization_products")
+}
+
+model ProductMedia {
+  id        Int              @id @default(autoincrement())
+  productId Int              @map("product_id")
+  mediaId   Int              @map("media_id")
+  role      ProductMediaRole @default(GALLERY)
+  sortOrder Int              @default(0) @map("sort_order")
+  createdAt DateTime         @default(now()) @map("created_at")
+
+  product Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  media   MediaAsset @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, mediaId, role])
+  @@index([productId, role, sortOrder])
+  @@index([mediaId])
+  @@map("product_media")
+}
+
+model HomeSlide {
+  id           Int      @id @default(autoincrement())
+  imageMediaId Int?     @map("image_media_id")
+  eyebrow      String?  @db.VarChar(120)
+  title        String   @db.VarChar(191)
+  text         String?  @db.VarChar(500)
+  ctaLabel     String?  @map("cta_label") @db.VarChar(120)
+  ctaUrl       String?  @map("cta_url") @db.Text
+  active       Boolean  @default(true)
+  sortOrder    Int      @default(0) @map("sort_order")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  imageMedia MediaAsset? @relation("HomeSlideImage", fields: [imageMediaId], references: [id], onDelete: SetNull)
+
+  @@index([active, sortOrder])
+  @@index([imageMediaId])
+  @@map("home_slides")
+}
+
+model TrustCard {
+  id        Int      @id @default(autoincrement())
+  title     String   @db.VarChar(120)
+  text      String?  @db.VarChar(500)
+  iconKey   String?  @map("icon_key") @db.VarChar(80)
+  active    Boolean  @default(true)
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([active, sortOrder])
+  @@map("trust_cards")
+}
+
+model CompanySettings {
+  id             Int      @id @default(1)
+  businessName   String   @default("Grossiste Ouaga International") @map("business_name") @db.VarChar(191)
+  address        String?  @db.Text
+  city           String?  @db.VarChar(120)
+  phone          String?  @db.VarChar(32)
+  whatsapp       String?  @db.VarChar(32)
+  email          String?  @db.VarChar(191)
+  hoursText      String?  @map("hours_text") @db.Text
+  mapsUrl        String?  @map("maps_url") @db.Text
+  latitude       Decimal? @db.Decimal(10, 7)
+  longitude      Decimal? @db.Decimal(10, 7)
+  facebookUrl    String?  @map("facebook_url") @db.Text
+  instagramUrl   String?  @map("instagram_url") @db.Text
+  linkedinUrl    String?  @map("linkedin_url") @db.Text
+  youtubeUrl     String?  @map("youtube_url") @db.Text
+  tiktokUrl      String?  @map("tiktok_url") @db.Text
+  logoMediaId    Int?     @map("logo_media_id")
+  faviconMediaId Int?     @map("favicon_media_id")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  logoMedia    MediaAsset? @relation("CompanyLogo", fields: [logoMediaId], references: [id], onDelete: SetNull)
+  faviconMedia MediaAsset? @relation("CompanyFavicon", fields: [faviconMediaId], references: [id], onDelete: SetNull)
+
+  @@index([logoMediaId])
+  @@index([faviconMediaId])
+  @@map("company_settings")
+}
+
+model AboutContent {
+  id                Int      @id @default(1)
+  heroTitle         String?  @map("hero_title") @db.VarChar(191)
+  heroText          String?  @map("hero_text") @db.Text
+  heroVideoMediaId  Int?     @map("hero_video_media_id")
+  heroPosterMediaId Int?     @map("hero_poster_media_id")
+  introTitle        String?  @map("intro_title") @db.VarChar(191)
+  introText         String?  @map("intro_text") @db.Text
+  introMediaId      Int?     @map("intro_media_id")
+  implantationTitle String?  @map("implantation_title") @db.VarChar(191)
+  implantationText  String?  @map("implantation_text") @db.Text
+  missionTitle      String?  @map("mission_title") @db.VarChar(191)
+  missionText       String?  @map("mission_text") @db.Text
+  missionMediaId    Int?     @map("mission_media_id")
+  valuesTitle       String?  @map("values_title") @db.VarChar(191)
+  values            Json?
+  strengthsTitle    String?  @map("strengths_title") @db.VarChar(191)
+  strengths         Json?
+  strengthsMediaId  Int?     @map("strengths_media_id")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  heroVideo      MediaAsset? @relation("AboutHeroVideo", fields: [heroVideoMediaId], references: [id], onDelete: SetNull)
+  heroPoster     MediaAsset? @relation("AboutHeroPoster", fields: [heroPosterMediaId], references: [id], onDelete: SetNull)
+  introMedia     MediaAsset? @relation("AboutIntroImage", fields: [introMediaId], references: [id], onDelete: SetNull)
+  missionMedia   MediaAsset? @relation("AboutMissionImage", fields: [missionMediaId], references: [id], onDelete: SetNull)
+  strengthsMedia MediaAsset? @relation("AboutStrengthImage", fields: [strengthsMediaId], references: [id], onDelete: SetNull)
+
+  @@index([heroVideoMediaId])
+  @@index([heroPosterMediaId])
+  @@map("about_content")
+}
+
+model ContactMessage {
+  id        Int                  @id @default(autoincrement())
+  subject   String               @db.VarChar(191)
+  name      String               @db.VarChar(120)
+  phone     String               @db.VarChar(32)
+  email     String?              @db.VarChar(191)
+  message   String               @db.Text
+  status    ContactMessageStatus @default(UNREAD)
+  createdAt DateTime             @default(now()) @map("created_at")
+  updatedAt DateTime             @updatedAt @map("updated_at")
+
+  @@index([status, createdAt])
+  @@map("contact_messages")
 }
