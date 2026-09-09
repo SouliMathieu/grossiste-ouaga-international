@@ -7,6 +7,10 @@ import { adminRouter } from './routes/admin.js';
 import { adminCatalogRouter } from './routes/admin-catalog.js';
 import { adminOperationsRouter } from './routes/admin-operations.js';
 import { catalogRouter } from './routes/catalog.js';
+import { contentRouter } from './routes/content.js';
+import { contactRouter } from './routes/contact.js';
+import { adminContentRouter } from './routes/admin-content.js';
+import { adminSiteContentRouter } from './routes/admin-site-content.js';
 import { healthRouter } from './routes/health.js';
 import { ordersRouter } from './routes/orders.js';
 
@@ -43,8 +47,12 @@ export function createApp() {
 
   app.use('/api/health', healthRouter);
   app.use('/api/catalog', catalogRouter);
+  app.use('/api/content', contentRouter);
+  app.use('/api/contact', contactRouter);
   app.use('/api/orders', ordersRouter);
   app.use('/api/admin/catalog', adminCatalogRouter);
+  app.use('/api/admin/content', adminContentRouter);
+  app.use('/api/admin/content', adminSiteContentRouter);
   app.use('/api/admin', adminRouter);
   app.use('/api/admin', adminOperationsRouter);
 
