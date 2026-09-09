@@ -40,6 +40,7 @@ enum PaymentMethodType {
 model Order {
   id              Int          @id @default(autoincrement())
   reference       String       @unique @db.VarChar(32)
+  accessTokenHash String?      @map("access_token_hash") @db.Char(64)
   customerName    String       @map("customer_name") @db.VarChar(120)
   customerPhone   String       @map("customer_phone") @db.VarChar(32)
   customerEmail   String?      @map("customer_email") @db.VarChar(191)

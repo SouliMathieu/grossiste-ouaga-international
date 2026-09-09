@@ -1,9 +1,23 @@
-import { randomUUID } from 'node:crypto';
+import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { prisma } from '../lib/prisma.js';
 import type {
   CreateOrderInput,
   SubmitPaymentInput,
 } from '../schemas/orders.schema.js';
+
+const ORDER_ACCESS_TOKEN_BYTES = 32;
+
+function createOrderAccessToken() {
+  return randomBytes(
+    ORDER_ACCESS_TOKEN_BYTES,
+  ).toString('base64url');
+}
+
+function hashOrderAccessToken(token: string) {
+  return createHash('sha256')
+    .update(token, 'utf8')
+    .digest('hex');
+}
 
 export class UnknownProductError extends Error {
   constructor(public readonly productId: number) {
@@ -20,6 +34,10 @@ export class UnknownPaymentMethodError extends Error {
 }
 
 export async function createOrder(input: CreateOrderInput) {
+  const accessToken = createOrderAccessToken();
+  const accessTokenHash =
+    hashOrderAccessToken(accessToken);
+
   const productIds = [
     ...new Set(input.items.map((item) => item.productId)),
   ];
@@ -86,6 +104,7 @@ export async function createOrder(input: CreateOrderInput) {
   const created = await prisma.order.create({
     data: {
       reference: temporaryReference,
+      accessTokenHash,
       customerName: input.customerName,
       customerPhone: input.customerPhone,
       customerEmail: input.customerEmail ?? null,
@@ -142,7 +161,7 @@ export async function createOrder(input: CreateOrderInput) {
     `GOI-${year}-${String(created.id).padStart(6, '0')}`;
 
   try {
-    return await prisma.order.update({
+    const order = await prisma.order.update({
       where: {
         id: created.id,
       },
@@ -170,6 +189,11 @@ export async function createOrder(input: CreateOrderInput) {
         },
       },
     });
+
+    return {
+      order,
+      accessToken,
+    };
   } catch (error) {
     try {
       await prisma.order.delete({
@@ -190,10 +214,15 @@ export async function createOrder(input: CreateOrderInput) {
 
 export async function getOrderByReference(
   reference: string,
+  accessToken: string,
 ) {
-  return prisma.order.findUnique({
+  const accessTokenHash =
+    hashOrderAccessToken(accessToken);
+
+  return prisma.order.findFirst({
     where: {
       reference,
+      accessTokenHash,
     },
     include: {
       items: true,
@@ -273,11 +302,16 @@ function isUniqueConstraintError(error: unknown) {
 
 export async function submitPayment(
   reference: string,
+  accessToken: string,
   input: SubmitPaymentInput,
 ) {
-  const order = await prisma.order.findUnique({
+  const accessTokenHash =
+    hashOrderAccessToken(accessToken);
+
+  const order = await prisma.order.findFirst({
     where: {
       reference,
+      accessTokenHash,
     },
     include: {
       payments: {

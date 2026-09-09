@@ -19,6 +19,7 @@ import { PaymentSubmissionForm } from '../components/payment/PaymentSubmissionFo
 import { SiteFooter } from '../components/layout/SiteFooter';
 import { SiteHeader } from '../components/layout/SiteHeader';
 import { TopBar } from '../components/layout/TopBar';
+import { getOrderAccessToken } from '../lib/order-access';
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ??
@@ -166,6 +167,21 @@ export function PaymentPage() {
     }
 
     const orderReference = reference;
+
+    const storedAccessToken =
+      getOrderAccessToken(orderReference);
+
+    if (!storedAccessToken) {
+      setLoadError(
+        'Cette commande n’est plus accessible dans cette session.',
+      );
+      setIsLoading(false);
+      return;
+    }
+
+    const accessToken: string =
+      storedAccessToken;
+
     const controller = new AbortController();
 
     async function loadOrder() {
@@ -177,6 +193,10 @@ export function PaymentPage() {
           `${API_BASE_URL}/api/orders/${encodeURIComponent(orderReference)}`,
           {
             signal: controller.signal,
+            headers: {
+              'X-Order-Access-Token':
+                accessToken,
+            },
           },
         );
 

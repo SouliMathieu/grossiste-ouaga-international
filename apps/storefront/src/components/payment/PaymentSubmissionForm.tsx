@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { getOrderAccessToken } from '../../lib/order-access';
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:4000';
@@ -53,6 +54,15 @@ export function PaymentSubmissionForm({
     setIsSubmitting(true);
 
     try {
+      const accessToken =
+        getOrderAccessToken(reference);
+
+      if (!accessToken) {
+        throw new Error(
+          'Cette commande n’est plus accessible dans cette session.',
+        );
+      }
+
       const response = await fetch(
         `${API_BASE_URL}/api/orders/${encodeURIComponent(
           reference,
@@ -61,6 +71,8 @@ export function PaymentSubmissionForm({
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'X-Order-Access-Token':
+              accessToken,
           },
           body: JSON.stringify({
             payerPhone: normalizedPhone,

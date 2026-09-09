@@ -21,6 +21,7 @@ import { SiteFooter } from '../components/layout/SiteFooter';
 import { SiteHeader } from '../components/layout/SiteHeader';
 import { TopBar } from '../components/layout/TopBar';
 import { useCart } from '../context/CartContext';
+import { setOrderAccessToken } from '../lib/order-access';
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ??
@@ -151,6 +152,7 @@ function loadCheckoutDraft(): CheckoutDraft {
 
 type CreateOrderResponse = {
   data?: {
+    accessToken?: string;
     reference?: string;
   };
   message?: string;
@@ -371,13 +373,22 @@ export function CheckoutPage() {
         );
       }
 
-      const reference = payload?.data?.reference;
+      const reference =
+        payload?.data?.reference;
 
-      if (!reference) {
+      const accessToken =
+        payload?.data?.accessToken;
+
+      if (!reference || !accessToken) {
         throw new Error(
-          'La commande a été créée mais aucune référence n’a été reçue.',
+          'La commande a été créée mais ses informations d’accès sont incomplètes.',
         );
       }
+
+      setOrderAccessToken(
+        reference,
+        accessToken,
+      );
 
       sessionStorage.removeItem(
         CHECKOUT_DRAFT_KEY,

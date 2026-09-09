@@ -13,6 +13,24 @@ import {
   UnknownProductError,
 } from '../services/orders.service.js';
 
+function getOrderAccessToken(
+  request: Request,
+) {
+  const token = request
+    .get('x-order-access-token')
+    ?.trim();
+
+  if (
+    !token ||
+    token.length < 20 ||
+    token.length > 200
+  ) {
+    return null;
+  }
+
+  return token;
+}
+
 export async function createOrderController(
   request: Request,
   response: Response,
@@ -31,12 +49,16 @@ export async function createOrderController(
   }
 
   try {
-    const order = await createOrder(parsed.data);
+    const {
+      order,
+      accessToken,
+    } = await createOrder(parsed.data);
 
     return response.status(201).json({
       data: {
         id: order.id,
         reference: order.reference,
+        accessToken,
         status: order.status,
         subtotal: Number(order.subtotal),
         currency: order.currency,
@@ -90,8 +112,22 @@ export async function getOrderByReferenceController(
     });
   }
 
+  const accessToken =
+    getOrderAccessToken(request);
+
+  if (!accessToken) {
+    return response.status(404).json({
+      error: 'ORDER_NOT_FOUND',
+      message:
+        'Cette commande est introuvable ou n’est plus accessible.',
+    });
+  }
+
   try {
-    const order = await getOrderByReference(reference);
+    const order = await getOrderByReference(
+      reference,
+      accessToken,
+    );
 
     if (!order) {
       return response.status(404).json({
@@ -172,6 +208,17 @@ export async function submitPaymentController(
     });
   }
 
+  const accessToken =
+    getOrderAccessToken(request);
+
+  if (!accessToken) {
+    return response.status(404).json({
+      error: 'ORDER_NOT_FOUND',
+      message:
+        'Cette commande est introuvable ou n’est plus accessible.',
+    });
+  }
+
   const parsed = submitPaymentSchema.safeParse(request.body);
 
   if (!parsed.success) {
@@ -186,7 +233,11 @@ export async function submitPaymentController(
   }
 
   try {
-    const payment = await submitPayment(reference, parsed.data);
+    const payment = await submitPayment(
+      reference,
+      accessToken,
+      parsed.data,
+    );
 
     return response.json({
       data: {
