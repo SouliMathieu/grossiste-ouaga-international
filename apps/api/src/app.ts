@@ -11,6 +11,7 @@ import { contentRouter } from './routes/content.js';
 import { contactRouter } from './routes/contact.js';
 import { adminContentRouter } from './routes/admin-content.js';
 import { adminSiteContentRouter } from './routes/admin-site-content.js';
+import { adminMediaRouter } from './routes/admin-media.js';
 import {
   ADMIN_CSRF_HEADER,
   requireAdminCsrf,
@@ -66,6 +67,7 @@ export function createApp() {
   app.use('/api/admin/catalog', adminCatalogRouter);
   app.use('/api/admin/content', adminContentRouter);
   app.use('/api/admin/content', adminSiteContentRouter);
+  app.use('/api/admin/media', adminMediaRouter);
   app.use('/api/admin', adminRouter);
   app.use('/api/admin', adminOperationsRouter);
 
