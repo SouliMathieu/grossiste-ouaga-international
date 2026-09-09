@@ -2,6 +2,7 @@ import {
   Boxes,
   CreditCard,
   LayoutDashboard,
+  Images,
   LogOut,
   Menu,
   ReceiptText,
@@ -58,6 +59,11 @@ const navigation = [
     href: '/comptes-paiement',
     icon: WalletCards,
   },
+  {
+    label: 'Médias',
+    href: '/medias',
+    icon: Images,
+  },
 ];
 
 const pageMeta: Record<
@@ -91,6 +97,11 @@ const pageMeta: Record<
     title: 'Comptes de paiement',
     description:
       'Configurez les comptes marchands utilisés par GOI.',
+  },
+  '/medias': {
+    title: 'Bibliothèque média',
+    description:
+      'Ajoutez et organisez les images, vidéos et documents du site.',
   },
 };
 

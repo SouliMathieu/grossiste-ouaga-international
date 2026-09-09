@@ -19,6 +19,7 @@ import {
 import { AdminDashboardPanel } from '../components/AdminDashboardPanel';
 import { AdminShell } from '../components/AdminShell';
 import { CatalogAdminPanel } from '../components/CatalogAdminPanel';
+import { MediaAdminPanel } from '../components/MediaAdminPanel';
 import { OrdersAdminPanel } from '../components/OrdersAdminPanel';
 import { PaymentAccountsAdminPanel } from '../components/PaymentAccountsAdminPanel';
 import { PaymentsAdminPanel } from '../components/PaymentsAdminPanel';
@@ -361,6 +362,17 @@ export function App() {
             path="/comptes-paiement"
             element={
               <PaymentAccountsAdminPanel />
+            }
+          />
+
+          <Route
+            path="/medias"
+            element={
+              <MediaAdminPanel
+                onUnauthorized={
+                  handleUnauthorized
+                }
+              />
             }
           />
 
