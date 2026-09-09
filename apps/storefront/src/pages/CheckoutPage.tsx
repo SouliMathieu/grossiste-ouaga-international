@@ -434,6 +434,38 @@ export function CheckoutPage() {
     );
   }
 
+  if (!selectedPaymentMethod) {
+    return (
+      <>
+        <TopBar />
+        <SiteHeader />
+
+        <main className="bg-goi-surface py-16">
+          <div className="mx-auto max-w-[760px] px-4 sm:px-6">
+            <div className="rounded-2xl border border-red-200 bg-white p-8 text-center">
+              <h1 className="text-2xl font-extrabold text-goi-navy">
+                Aucun moyen de paiement disponible
+              </h1>
+
+              <p className="mt-3 text-sm text-goi-muted">
+                Aucun moyen de paiement actif ne peut être utilisé pour le moment.
+              </p>
+
+              <Link
+                to="/panier"
+                className="mt-6 inline-flex min-h-12 items-center rounded-xl border border-slate-200 px-6 font-semibold text-goi-navy"
+              >
+                Retour au panier
+              </Link>
+            </div>
+          </div>
+        </main>
+
+        <SiteFooter />
+      </>
+    );
+  }
+
   let submitLabel = `Continuer avec ${selectedPaymentMethod.name}`;
 
   if (

@@ -64,14 +64,57 @@ const catalogQuerySchema = z
     }
   });
 
+function getPromotionState(product: {
+  price: unknown;
+  priceOnRequest: boolean;
+  promoPrice: unknown;
+  promoStartAt: Date | null;
+  promoEndAt: Date | null;
+}) {
+  const normalPrice =
+    product.price === null
+      ? null
+      : Number(product.price);
+
+  const promoPrice =
+    product.promoPrice === null
+      ? null
+      : Number(product.promoPrice);
+
+  const now = Date.now();
+
+  const promotionActive =
+    !product.priceOnRequest &&
+    normalPrice !== null &&
+    promoPrice !== null &&
+    product.promoStartAt !== null &&
+    product.promoEndAt !== null &&
+    product.promoStartAt.getTime() <= now &&
+    product.promoEndAt.getTime() >= now;
+
+  return {
+    promotionActive,
+    currentPrice: product.priceOnRequest
+      ? null
+      : promotionActive
+        ? promoPrice
+        : normalPrice,
+  };
+}
+
 function serializeProduct(product: {
   id: number;
   sku: string;
   slug: string;
   name: string;
+  brand: string | null;
   shortDescription: string | null;
   description: string | null;
   price: unknown;
+  priceOnRequest: boolean;
+  promoPrice: unknown;
+  promoStartAt: Date | null;
+  promoEndAt: Date | null;
   currency: string;
   unit: string;
   minOrderQty: number;
@@ -87,17 +130,29 @@ function serializeProduct(product: {
     slug: string;
   };
 }) {
+  const promotion = getPromotionState(product);
+
   return {
     id: product.id,
     sku: product.sku,
     slug: product.slug,
     name: product.name,
+    brand: product.brand,
     shortDescription: product.shortDescription,
     description: product.description,
     price:
       product.price === null
         ? null
         : Number(product.price),
+    priceOnRequest: product.priceOnRequest,
+    promoPrice:
+      product.promoPrice === null
+        ? null
+        : Number(product.promoPrice),
+    promoStartAt: product.promoStartAt,
+    promoEndAt: product.promoEndAt,
+    promotionActive: promotion.promotionActive,
+    currentPrice: promotion.currentPrice,
     currency: product.currency,
     unit: product.unit,
     minOrderQty: product.minOrderQty,
@@ -174,6 +229,11 @@ catalogRouter.get('/products', async (request, response) => {
     where.OR = [
       {
         name: {
+          contains: parsed.data.q,
+        },
+      },
+      {
+        brand: {
           contains: parsed.data.q,
         },
       },

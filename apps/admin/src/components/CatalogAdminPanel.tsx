@@ -19,9 +19,14 @@ type Product = {
   sku: string;
   slug: string;
   name: string;
+  brand: string | null;
   shortDescription: string | null;
   description: string | null;
   price: number | null;
+  priceOnRequest: boolean;
+  promoPrice: number | null;
+  promoStartAt: string | null;
+  promoEndAt: string | null;
   currency: string;
   unit: string;
   minOrderQty: number;
@@ -42,11 +47,15 @@ type ApiResponse<T> = {
 
 type ProductForm = {
   categoryId: string;
-  sku: string;
   name: string;
+  brand: string;
   shortDescription: string;
   description: string;
   price: string;
+  priceOnRequest: boolean;
+  promoPrice: string;
+  promoStartAt: string;
+  promoEndAt: string;
   unit: string;
   minOrderQty: string;
   packSize: string;
@@ -60,11 +69,15 @@ type ProductForm = {
 
 const emptyForm: ProductForm = {
   categoryId: '',
-  sku: '',
   name: '',
+  brand: '',
   shortDescription: '',
   description: '',
   price: '',
+  priceOnRequest: false,
+  promoPrice: '',
+  promoStartAt: '',
+  promoEndAt: '',
   unit: 'pièce',
   minOrderQty: '1',
   packSize: '1',
@@ -240,8 +253,8 @@ export function CatalogAdminPanel() {
 
     setForm({
       categoryId: String(product.categoryId),
-      sku: product.sku,
       name: product.name,
+      brand: product.brand ?? '',
       shortDescription:
         product.shortDescription ?? '',
       description: product.description ?? '',
@@ -249,6 +262,15 @@ export function CatalogAdminPanel() {
         product.price === null
           ? ''
           : String(product.price),
+      priceOnRequest: product.priceOnRequest,
+      promoPrice:
+        product.promoPrice === null
+          ? ''
+          : String(product.promoPrice),
+      promoStartAt:
+        product.promoStartAt?.slice(0, 10) ?? '',
+      promoEndAt:
+        product.promoEndAt?.slice(0, 10) ?? '',
       unit: product.unit,
       minOrderQty: String(product.minOrderQty),
       packSize: String(product.packSize),
@@ -306,6 +328,52 @@ export function CatalogAdminPanel() {
       return;
     }
 
+    if (
+      !form.priceOnRequest &&
+      form.price.trim() === ''
+    ) {
+      setError(
+        'Renseignez un prix ou activez « Prix sur devis ».',
+      );
+      return;
+    }
+
+    if (
+      !form.priceOnRequest &&
+      form.promoPrice.trim() !== ''
+    ) {
+      const normalPrice = Number(form.price);
+      const promoPrice = Number(form.promoPrice);
+
+      if (
+        !Number.isFinite(promoPrice) ||
+        promoPrice < 0 ||
+        promoPrice >= normalPrice
+      ) {
+        setError(
+          'Le prix promotionnel doit être inférieur au prix normal.',
+        );
+        return;
+      }
+
+      if (
+        form.promoStartAt === '' ||
+        form.promoEndAt === ''
+      ) {
+        setError(
+          'Renseignez les dates de début et de fin de la promotion.',
+        );
+        return;
+      }
+
+      if (form.promoStartAt > form.promoEndAt) {
+        setError(
+          'La date de fin de promotion doit être postérieure à la date de début.',
+        );
+        return;
+      }
+    }
+
     setIsSaving(true);
     setError(null);
     setSuccess(null);
@@ -313,16 +381,33 @@ export function CatalogAdminPanel() {
     try {
       const payload = {
         categoryId,
-        sku: form.sku.trim(),
         name: form.name.trim(),
+        brand: form.brand.trim() || null,
         shortDescription:
           form.shortDescription.trim() || null,
         description:
           form.description.trim() || null,
-        price:
-          form.price.trim() === ''
+        price: form.priceOnRequest
+          ? null
+          : form.price.trim() === ''
             ? null
             : Number(form.price),
+        priceOnRequest: form.priceOnRequest,
+        promoPrice:
+          form.priceOnRequest ||
+          form.promoPrice.trim() === ''
+            ? null
+            : Number(form.promoPrice),
+        promoStartAt:
+          form.priceOnRequest ||
+          form.promoStartAt === ''
+            ? null
+            : `${form.promoStartAt}T00:00:00.000Z`,
+        promoEndAt:
+          form.priceOnRequest ||
+          form.promoEndAt === ''
+            ? null
+            : `${form.promoEndAt}T23:59:59.999Z`,
         unit: form.unit.trim(),
         minOrderQty,
         packSize,
@@ -468,11 +553,17 @@ export function CatalogAdminPanel() {
         className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6"
       >
         <div className="flex flex-wrap items-center justify-between gap-4">
-          <h3 className="text-xl font-bold text-slate-900">
-            {editingId
-              ? 'Modifier le produit'
-              : 'Nouveau produit'}
-          </h3>
+          <div>
+            <h3 className="text-xl font-bold text-slate-900">
+              {editingId
+                ? 'Modifier le produit'
+                : 'Nouveau produit'}
+            </h3>
+
+            <p className="mt-1 text-sm text-slate-500">
+              La référence GOI et l’adresse web sont générées automatiquement.
+            </p>
+          </div>
 
           {editingId && (
             <button
@@ -515,18 +606,18 @@ export function CatalogAdminPanel() {
 
           <label>
             <span className="text-sm font-semibold">
-              SKU *
+              Marque / fabricant
             </span>
 
             <input
-              required
-              value={form.sku}
+              value={form.brand}
               onChange={(event) =>
                 updateField(
-                  'sku',
+                  'brand',
                   event.target.value,
                 )
               }
+              placeholder="Optionnel"
               className="mt-2 h-12 w-full rounded-lg border border-slate-200 px-4"
             />
           </label>
@@ -593,6 +684,7 @@ export function CatalogAdminPanel() {
               type="number"
               min="0"
               step="1"
+              disabled={form.priceOnRequest}
               value={form.price}
               onChange={(event) =>
                 updateField(
@@ -600,10 +692,119 @@ export function CatalogAdminPanel() {
                   event.target.value,
                 )
               }
-              placeholder="Vide = prix sur devis"
-              className="mt-2 h-12 w-full rounded-lg border border-slate-200 px-4"
+              placeholder={
+                form.priceOnRequest
+                  ? 'Prix sur devis'
+                  : 'Ex. 85000'
+              }
+              className="mt-2 h-12 w-full rounded-lg border border-slate-200 px-4 disabled:bg-slate-100 disabled:text-slate-400"
             />
           </label>
+
+          <label className="flex min-h-12 items-center gap-3 self-end rounded-lg border border-slate-200 px-4">
+            <input
+              type="checkbox"
+              checked={form.priceOnRequest}
+              onChange={(event) => {
+                const checked = event.target.checked;
+
+                setForm((current) => ({
+                  ...current,
+                  priceOnRequest: checked,
+                  ...(checked
+                    ? {
+                        price: '',
+                        promoPrice: '',
+                        promoStartAt: '',
+                        promoEndAt: '',
+                      }
+                    : {}),
+                }));
+              }}
+              className="h-4 w-4"
+            />
+
+            <span>
+              <span className="block text-sm font-semibold">
+                Prix sur devis
+              </span>
+              <span className="block text-xs text-slate-500">
+                Le client devra demander une cotation.
+              </span>
+            </span>
+          </label>
+
+          {!form.priceOnRequest && (
+            <div className="md:col-span-2 rounded-xl border border-amber-200 bg-amber-50/50 p-4">
+              <div>
+                <h4 className="font-bold text-slate-900">
+                  Promotion
+                </h4>
+                <p className="mt-1 text-sm text-slate-500">
+                  Laissez vide si aucune promotion n’est prévue.
+                </p>
+              </div>
+
+              <div className="mt-4 grid gap-4 md:grid-cols-3">
+                <label>
+                  <span className="text-sm font-semibold">
+                    Prix promotionnel
+                  </span>
+
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={form.promoPrice}
+                    onChange={(event) =>
+                      updateField(
+                        'promoPrice',
+                        event.target.value,
+                      )
+                    }
+                    placeholder="Ex. 75000"
+                    className="mt-2 h-12 w-full rounded-lg border border-slate-200 bg-white px-4"
+                  />
+                </label>
+
+                <label>
+                  <span className="text-sm font-semibold">
+                    Début
+                  </span>
+
+                  <input
+                    type="date"
+                    value={form.promoStartAt}
+                    onChange={(event) =>
+                      updateField(
+                        'promoStartAt',
+                        event.target.value,
+                      )
+                    }
+                    className="mt-2 h-12 w-full rounded-lg border border-slate-200 bg-white px-4"
+                  />
+                </label>
+
+                <label>
+                  <span className="text-sm font-semibold">
+                    Fin
+                  </span>
+
+                  <input
+                    type="date"
+                    value={form.promoEndAt}
+                    onChange={(event) =>
+                      updateField(
+                        'promoEndAt',
+                        event.target.value,
+                      )
+                    }
+                    className="mt-2 h-12 w-full rounded-lg border border-slate-200 bg-white px-4"
+                  />
+                </label>
+              </div>
+            </div>
+          )}
 
           <label>
             <span className="text-sm font-semibold">

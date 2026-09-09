@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { Router } from 'express';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma.js';
@@ -14,11 +15,15 @@ const nullableText = z
 
 const productSchema = z.object({
   categoryId: z.number().int().positive(),
-  sku: z.string().trim().min(2).max(64),
   name: z.string().trim().min(2).max(191),
+  brand: nullableText,
   shortDescription: nullableText,
   description: nullableText,
   price: z.number().nonnegative().nullable(),
+  priceOnRequest: z.boolean().optional(),
+  promoPrice: z.number().nonnegative().nullable().optional(),
+  promoStartAt: z.coerce.date().nullable().optional(),
+  promoEndAt: z.coerce.date().nullable().optional(),
   unit: z.string().trim().min(1).max(50),
   minOrderQty: z.number().int().positive(),
   packSize: z.number().int().positive(),
@@ -37,6 +42,92 @@ const productSchema = z.object({
   ]),
   imageUrl: nullableText,
   keywords: nullableText,
+}).superRefine((data, ctx) => {
+  const priceOnRequest =
+    data.priceOnRequest ?? (data.price === null);
+
+  const hasPromoPrice =
+    data.promoPrice !== undefined &&
+    data.promoPrice !== null;
+
+  const hasPromoStart =
+    data.promoStartAt !== undefined &&
+    data.promoStartAt !== null;
+
+  const hasPromoEnd =
+    data.promoEndAt !== undefined &&
+    data.promoEndAt !== null;
+
+  if (!priceOnRequest && data.price === null) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['price'],
+      message:
+        'Un produit vendu directement doit avoir un prix.',
+    });
+  }
+
+  if (
+    priceOnRequest &&
+    (hasPromoPrice || hasPromoStart || hasPromoEnd)
+  ) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['promoPrice'],
+      message:
+        'Un produit sur devis ne peut pas avoir de promotion.',
+    });
+  }
+
+  if (
+    hasPromoPrice &&
+    data.price !== null &&
+    data.promoPrice! >= data.price
+  ) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['promoPrice'],
+      message:
+        'Le prix promotionnel doit être inférieur au prix normal.',
+    });
+  }
+
+  if (
+    hasPromoPrice &&
+    (!hasPromoStart || !hasPromoEnd)
+  ) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['promoStartAt'],
+      message:
+        'Une promotion doit avoir une date de début et une date de fin.',
+    });
+  }
+
+  if (
+    !hasPromoPrice &&
+    (hasPromoStart || hasPromoEnd)
+  ) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['promoPrice'],
+      message:
+        'Renseignez un prix promotionnel avant les dates.',
+    });
+  }
+
+  if (
+    hasPromoStart &&
+    hasPromoEnd &&
+    data.promoStartAt! >= data.promoEndAt!
+  ) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['promoEndAt'],
+      message:
+        'La date de fin doit être postérieure à la date de début.',
+    });
+  }
 });
 
 function slugify(value: string) {
@@ -48,10 +139,14 @@ function slugify(value: string) {
     .replace(/^-+|-+$/g, '');
 }
 
-function buildProductSlug(name: string, sku: string) {
-  const slug = `${slugify(name)}-${slugify(sku)}`;
+function buildProductSku(productId: number) {
+  return `GOI-${String(productId).padStart(6, '0')}`;
+}
 
-  return slug.slice(0, 191);
+function buildProductSlugBase(name: string) {
+  const slug = slugify(name) || 'produit';
+
+  return slug.slice(0, 180);
 }
 
 function isUniqueConstraintError(error: unknown) {
@@ -69,9 +164,14 @@ function serializeProduct(product: {
   sku: string;
   slug: string;
   name: string;
+  brand: string | null;
   shortDescription: string | null;
   description: string | null;
   price: unknown;
+  priceOnRequest: boolean;
+  promoPrice: unknown;
+  promoStartAt: Date | null;
+  promoEndAt: Date | null;
   currency: string;
   unit: string;
   minOrderQty: number;
@@ -96,12 +196,20 @@ function serializeProduct(product: {
     sku: product.sku,
     slug: product.slug,
     name: product.name,
+    brand: product.brand,
     shortDescription: product.shortDescription,
     description: product.description,
     price:
       product.price === null
         ? null
         : Number(product.price),
+    priceOnRequest: product.priceOnRequest,
+    promoPrice:
+      product.promoPrice === null
+        ? null
+        : Number(product.promoPrice),
+    promoStartAt: product.promoStartAt,
+    promoEndAt: product.promoEndAt,
     currency: product.currency,
     unit: product.unit,
     minOrderQty: product.minOrderQty,
@@ -186,41 +294,106 @@ adminCatalogRouter.post(
         });
       }
 
-      const product = await prisma.product.create({
-        data: {
-          categoryId: parsed.data.categoryId,
-          sku: parsed.data.sku,
-          slug: buildProductSlug(
+      const product = await prisma.$transaction(
+        async (tx) => {
+          const temporaryKey = randomUUID().replaceAll(
+            '-',
+            '',
+          );
+
+          const priceOnRequest =
+            parsed.data.priceOnRequest ??
+            parsed.data.price === null;
+
+          const temporaryProduct =
+            await tx.product.create({
+              data: {
+                categoryId: parsed.data.categoryId,
+                sku: `TMP-${temporaryKey}`.slice(0, 64),
+                slug: `tmp-${temporaryKey}`.slice(0, 191),
+                name: parsed.data.name,
+                brand: parsed.data.brand,
+                shortDescription:
+                  parsed.data.shortDescription,
+                description:
+                  parsed.data.description,
+                price: priceOnRequest
+                  ? null
+                  : parsed.data.price,
+                priceOnRequest,
+                promoPrice: priceOnRequest
+                  ? null
+                  : parsed.data.promoPrice ?? null,
+                promoStartAt: priceOnRequest
+                  ? null
+                  : parsed.data.promoStartAt ?? null,
+                promoEndAt: priceOnRequest
+                  ? null
+                  : parsed.data.promoEndAt ?? null,
+                currency: 'XOF',
+                unit: parsed.data.unit,
+                minOrderQty:
+                  parsed.data.minOrderQty,
+                packSize: parsed.data.packSize,
+                availability:
+                  parsed.data.availability,
+                stockQuantity:
+                  parsed.data.stockQuantity,
+                featured: parsed.data.featured,
+                status: parsed.data.status,
+                imageUrl: parsed.data.imageUrl,
+                keywords: parsed.data.keywords,
+              },
+            });
+
+          const sku = buildProductSku(
+            temporaryProduct.id,
+          );
+
+          const baseSlug = buildProductSlugBase(
             parsed.data.name,
-            parsed.data.sku,
-          ),
-          name: parsed.data.name,
-          shortDescription:
-            parsed.data.shortDescription,
-          description: parsed.data.description,
-          price: parsed.data.price,
-          currency: 'XOF',
-          unit: parsed.data.unit,
-          minOrderQty: parsed.data.minOrderQty,
-          packSize: parsed.data.packSize,
-          availability: parsed.data.availability,
-          stockQuantity:
-            parsed.data.stockQuantity,
-          featured: parsed.data.featured,
-          status: parsed.data.status,
-          imageUrl: parsed.data.imageUrl,
-          keywords: parsed.data.keywords,
-        },
-        include: {
-          category: {
-            select: {
-              id: true,
-              name: true,
-              slug: true,
+          );
+
+          const slugCollision =
+            await tx.product.findFirst({
+              where: {
+                slug: baseSlug,
+                NOT: {
+                  id: temporaryProduct.id,
+                },
+              },
+              select: {
+                id: true,
+              },
+            });
+
+          const slug = slugCollision
+            ? `${baseSlug}-${temporaryProduct.id}`.slice(
+                0,
+                191,
+              )
+            : baseSlug;
+
+          return tx.product.update({
+            where: {
+              id: temporaryProduct.id,
             },
-          },
+            data: {
+              sku,
+              slug,
+            },
+            include: {
+              category: {
+                select: {
+                  id: true,
+                  name: true,
+                  slug: true,
+                },
+              },
+            },
+          });
         },
-      });
+      );
 
       return response.status(201).json({
         data: serializeProduct(product),
@@ -312,13 +485,49 @@ adminCatalogRouter.patch(
         },
         data: {
           categoryId: parsed.data.categoryId,
-          sku: parsed.data.sku,
           slug: existing.slug,
           name: parsed.data.name,
+          brand: parsed.data.brand,
           shortDescription:
             parsed.data.shortDescription,
           description: parsed.data.description,
-          price: parsed.data.price,
+          price:
+            (
+              parsed.data.priceOnRequest ??
+              existing.priceOnRequest
+            )
+              ? null
+              : parsed.data.price,
+          priceOnRequest:
+            parsed.data.priceOnRequest ??
+            existing.priceOnRequest,
+          promoPrice:
+            (
+              parsed.data.priceOnRequest ??
+              existing.priceOnRequest
+            )
+              ? null
+              : parsed.data.promoPrice === undefined
+                ? existing.promoPrice
+                : parsed.data.promoPrice,
+          promoStartAt:
+            (
+              parsed.data.priceOnRequest ??
+              existing.priceOnRequest
+            )
+              ? null
+              : parsed.data.promoStartAt === undefined
+                ? existing.promoStartAt
+                : parsed.data.promoStartAt,
+          promoEndAt:
+            (
+              parsed.data.priceOnRequest ??
+              existing.priceOnRequest
+            )
+              ? null
+              : parsed.data.promoEndAt === undefined
+                ? existing.promoEndAt
+                : parsed.data.promoEndAt,
           unit: parsed.data.unit,
           minOrderQty: parsed.data.minOrderQty,
           packSize: parsed.data.packSize,
