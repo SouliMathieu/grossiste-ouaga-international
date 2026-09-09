@@ -11,6 +11,10 @@ import { contentRouter } from './routes/content.js';
 import { contactRouter } from './routes/contact.js';
 import { adminContentRouter } from './routes/admin-content.js';
 import { adminSiteContentRouter } from './routes/admin-site-content.js';
+import {
+  ADMIN_CSRF_HEADER,
+  requireAdminCsrf,
+} from './middleware/require-admin.js';
 import { healthRouter } from './routes/health.js';
 import { ordersRouter } from './routes/orders.js';
 
@@ -32,6 +36,9 @@ export function createApp() {
         );
       },
       credentials: true,
+      exposedHeaders: [
+        ADMIN_CSRF_HEADER,
+      ],
     }),
   );
 
@@ -50,6 +57,12 @@ export function createApp() {
   app.use('/api/content', contentRouter);
   app.use('/api/contact', contactRouter);
   app.use('/api/orders', ordersRouter);
+
+  app.use(
+    '/api/admin',
+    requireAdminCsrf,
+  );
+
   app.use('/api/admin/catalog', adminCatalogRouter);
   app.use('/api/admin/content', adminContentRouter);
   app.use('/api/admin/content', adminSiteContentRouter);

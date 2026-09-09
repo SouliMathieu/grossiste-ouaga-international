@@ -1,3 +1,4 @@
+import { adminFetch } from '../lib/admin-fetch';
 import {
   useEffect,
   useState,
@@ -82,7 +83,7 @@ export function PaymentAccountsAdminPanel() {
     setError(null);
 
     try {
-      const response = await fetch(
+      const response = await adminFetch(
         `${API_BASE_URL}/api/admin/payment-accounts`,
         {
           credentials: 'include',
@@ -169,7 +170,7 @@ export function PaymentAccountsAdminPanel() {
     setSuccess(null);
 
     try {
-      const response = await fetch(
+      const response = await adminFetch(
         `${API_BASE_URL}/api/admin/payment-accounts/${encodeURIComponent(
           method.code,
         )}`,

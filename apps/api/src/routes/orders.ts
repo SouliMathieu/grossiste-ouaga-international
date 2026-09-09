@@ -1,5 +1,10 @@
 import { Router } from 'express';
 import {
+  orderCreateRateLimit,
+  orderLookupRateLimit,
+  paymentSubmitRateLimit,
+} from '../middleware/rate-limiters.js';
+import {
   createOrderController,
   getOrderByReferenceController,
   submitPaymentController,
@@ -7,6 +12,18 @@ import {
 
 export const ordersRouter = Router();
 
-ordersRouter.post('/', createOrderController);
-ordersRouter.post('/:reference/payment/submit', submitPaymentController);
-ordersRouter.get('/:reference', getOrderByReferenceController);
+ordersRouter.post(
+  '/',
+  orderCreateRateLimit,
+  createOrderController,
+);
+ordersRouter.post(
+  '/:reference/payment/submit',
+  paymentSubmitRateLimit,
+  submitPaymentController,
+);
+ordersRouter.get(
+  '/:reference',
+  orderLookupRateLimit,
+  getOrderByReferenceController,
+);

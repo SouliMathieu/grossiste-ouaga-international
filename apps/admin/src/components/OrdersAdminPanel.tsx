@@ -1,3 +1,4 @@
+import { adminFetch } from '../lib/admin-fetch';
 import {
   useEffect,
   useState,
@@ -123,7 +124,7 @@ export function OrdersAdminPanel() {
     setError(null);
 
     try {
-      const response = await fetch(
+      const response = await adminFetch(
         `${API_BASE_URL}/api/admin/orders`,
         {
           credentials: 'include',
@@ -178,7 +179,7 @@ export function OrdersAdminPanel() {
     setError(null);
 
     try {
-      const response = await fetch(
+      const response = await adminFetch(
         `${API_BASE_URL}/api/admin/orders/${order.id}/status`,
         {
           method: 'PATCH',

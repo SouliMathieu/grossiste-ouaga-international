@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma.js';
+import { contactMessageRateLimit } from '../middleware/rate-limiters.js';
 
 export const contactRouter = Router();
 
@@ -37,6 +38,7 @@ const contactMessageSchema = z.object({
 
 contactRouter.post(
   '/messages',
+  contactMessageRateLimit,
   async (request, response) => {
     const parsed =
       contactMessageSchema.safeParse(

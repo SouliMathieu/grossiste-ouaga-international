@@ -1,3 +1,4 @@
+import { adminFetch } from '../lib/admin-fetch';
 import {
   useEffect,
   useState,
@@ -161,10 +162,10 @@ export function CatalogAdminPanel() {
         categoriesResponse,
         productsResponse,
       ] = await Promise.all([
-        fetch(
+        adminFetch(
           `${API_BASE_URL}/api/catalog/categories`,
         ),
-        fetch(
+        adminFetch(
           `${API_BASE_URL}/api/admin/catalog/products`,
           {
             credentials: 'include',
@@ -424,7 +425,7 @@ export function CatalogAdminPanel() {
           form.keywords.trim() || null,
       };
 
-      const response = await fetch(
+      const response = await adminFetch(
         editingId
           ? `${API_BASE_URL}/api/admin/catalog/products/${editingId}`
           : `${API_BASE_URL}/api/admin/catalog/products`,
@@ -484,7 +485,7 @@ export function CatalogAdminPanel() {
     setError(null);
 
     try {
-      const response = await fetch(
+      const response = await adminFetch(
         `${API_BASE_URL}/api/admin/catalog/products/${product.id}`,
         {
           method: 'DELETE',

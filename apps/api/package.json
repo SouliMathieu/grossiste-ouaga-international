@@ -22,6 +22,7 @@
     "cors": "latest",
     "dotenv": "^17.4.2",
     "express": "^5.0.0",
+    "express-rate-limit": "^8.7.0",
     "helmet": "latest",
     "prisma": "7.9.1",
     "zod": "^4.0.0"

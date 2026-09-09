@@ -1,3 +1,4 @@
+import { adminFetch } from '../lib/admin-fetch';
 import {
   ArrowRight,
   Boxes,
@@ -105,7 +106,7 @@ export function AdminDashboardPanel({
     const controller = new AbortController();
 
     async function fetchList<T>(path: string) {
-      const response = await fetch(`${API_BASE_URL}${path}`, {
+      const response = await adminFetch(`${API_BASE_URL}${path}`, {
         credentials: 'include',
         signal: controller.signal,
       });

@@ -1,3 +1,4 @@
+import { adminFetch } from '../lib/admin-fetch';
 import {
   CheckCircle2,
   Clock3,
@@ -145,7 +146,7 @@ export function PaymentsAdminPanel({
           ? ''
           : `?status=${encodeURIComponent(filter)}`;
 
-      const response = await fetch(
+      const response = await adminFetch(
         `${API_BASE_URL}/api/admin/payments${query}`,
         {
           credentials: 'include',
@@ -223,7 +224,7 @@ export function PaymentsAdminPanel({
       const note =
         notes[payment.id]?.trim();
 
-      const response = await fetch(
+      const response = await adminFetch(
         `${API_BASE_URL}/api/admin/payments/${payment.id}/status`,
         {
           method: 'PATCH',

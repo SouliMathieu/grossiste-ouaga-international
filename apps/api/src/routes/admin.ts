@@ -4,8 +4,11 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { env } from '../config/env.js';
 import { prisma } from '../lib/prisma.js';
+import { adminLoginRateLimit } from '../middleware/rate-limiters.js';
 import {
+  ADMIN_CSRF_HEADER,
   ADMIN_SESSION_COOKIE,
+  createAdminCsrfToken,
   hashAdminSessionToken,
   requireAdmin,
 } from '../middleware/require-admin.js';
@@ -49,7 +52,10 @@ function getCookieOptions() {
   };
 }
 
-adminRouter.post('/auth/login', async (request, response) => {
+adminRouter.post(
+  '/auth/login',
+  adminLoginRateLimit,
+  async (request, response) => {
   const parsed = loginSchema.safeParse(request.body);
 
   if (!parsed.success) {
@@ -114,6 +120,13 @@ adminRouter.post('/auth/login', async (request, response) => {
       ADMIN_SESSION_COOKIE,
       sessionToken,
       getCookieOptions(),
+    );
+
+    response.setHeader(
+      ADMIN_CSRF_HEADER,
+      createAdminCsrfToken(
+        sessionToken,
+      ),
     );
 
     return response.json({

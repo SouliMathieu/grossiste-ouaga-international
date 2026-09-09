@@ -1,3 +1,4 @@
+import { adminFetch } from '../lib/admin-fetch';
 import {
   ArrowRight,
   LockKeyhole,
@@ -60,7 +61,7 @@ export function App() {
   useEffect(() => {
     async function checkSession() {
       try {
-        const response = await fetch(
+        const response = await adminFetch(
           `${API_BASE_URL}/api/admin/auth/me`,
           {
             credentials: 'include',
@@ -105,7 +106,7 @@ export function App() {
     setIsLoggingIn(true);
 
     try {
-      const response = await fetch(
+      const response = await adminFetch(
         `${API_BASE_URL}/api/admin/auth/login`,
         {
           method: 'POST',
@@ -146,7 +147,7 @@ export function App() {
 
   async function handleLogout() {
     try {
-      await fetch(
+      await adminFetch(
         `${API_BASE_URL}/api/admin/auth/logout`,
         {
           method: 'POST',
