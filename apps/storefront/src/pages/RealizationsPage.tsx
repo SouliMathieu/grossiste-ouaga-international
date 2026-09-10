@@ -1,16 +1,20 @@
 import {
+  ArrowRight,
   MapPin,
 } from 'lucide-react';
 import {
   useEffect,
   useState,
 } from 'react';
+import { Link } from 'react-router-dom';
 import { SiteFooter } from '../components/layout/SiteFooter';
 import { SiteHeader } from '../components/layout/SiteHeader';
 import { TopBar } from '../components/layout/TopBar';
 import {
+  getRealizationCategories,
   getRealizations,
   type PublicRealization,
+  type RealizationCategory,
 } from '../lib/content';
 
 export function RealizationsPage() {
@@ -20,6 +24,18 @@ export function RealizationsPage() {
   ] = useState<
     PublicRealization[]
   >([]);
+
+  const [
+    categories,
+    setCategories,
+  ] = useState<
+    RealizationCategory[]
+  >([]);
+
+  const [
+    selectedCategory,
+    setSelectedCategory,
+  ] = useState('');
 
   const [isLoading, setIsLoading] =
     useState(true);
@@ -31,10 +47,28 @@ export function RealizationsPage() {
     const controller =
       new AbortController();
 
-    getRealizations(
-      controller.signal,
-    )
-      .then(setRealizations)
+    Promise.all([
+      getRealizations(
+        controller.signal,
+      ),
+      getRealizationCategories(
+        controller.signal,
+      ),
+    ])
+      .then(
+        ([
+          realizationData,
+          categoryData,
+        ]) => {
+          setRealizations(
+            realizationData,
+          );
+
+          setCategories(
+            categoryData,
+          );
+        },
+      )
       .catch((caught: unknown) => {
         if (
           caught instanceof DOMException &&
@@ -59,6 +93,15 @@ export function RealizationsPage() {
       controller.abort();
   }, []);
 
+  const filtered =
+    selectedCategory
+      ? realizations.filter(
+          (item) =>
+            item.category.slug ===
+            selectedCategory,
+        )
+      : realizations;
+
   return (
     <>
       <TopBar />
@@ -68,17 +111,67 @@ export function RealizationsPage() {
         <section className="bg-goi-navy py-14 text-white">
           <div className="mx-auto max-w-[1360px] px-4 sm:px-6">
             <p className="font-bold uppercase tracking-[0.12em] text-goi-gold">
-              Projets
+              Projets réalisés
             </p>
 
-            <h1 className="mt-3 text-4xl font-extrabold">
+            <h1 className="mt-3 text-4xl font-extrabold sm:text-5xl">
               Nos Réalisations
             </h1>
+
+            <p className="mt-4 max-w-2xl leading-7 text-white/75">
+              Découvrez les projets réellement
+              publiés par GOI.
+            </p>
           </div>
         </section>
 
         <section className="bg-white py-14">
           <div className="mx-auto max-w-[1360px] px-4 sm:px-6">
+            {categories.length > 0 && (
+              <div className="mb-8 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setSelectedCategory(
+                      '',
+                    )
+                  }
+                  className={[
+                    'min-h-11 rounded-full px-5 text-sm font-bold',
+                    selectedCategory ===
+                    ''
+                      ? 'bg-goi-navy text-white'
+                      : 'bg-goi-surface text-goi-navy',
+                  ].join(' ')}
+                >
+                  Toutes
+                </button>
+
+                {categories.map(
+                  (category) => (
+                    <button
+                      key={category.id}
+                      type="button"
+                      onClick={() =>
+                        setSelectedCategory(
+                          category.slug,
+                        )
+                      }
+                      className={[
+                        'min-h-11 rounded-full px-5 text-sm font-bold',
+                        selectedCategory ===
+                        category.slug
+                          ? 'bg-goi-navy text-white'
+                          : 'bg-goi-surface text-goi-navy',
+                      ].join(' ')}
+                    >
+                      {category.name}
+                    </button>
+                  ),
+                )}
+              </div>
+            )}
+
             {error && (
               <div className="rounded-xl bg-red-50 p-4 text-goi-danger">
                 {error}
@@ -96,10 +189,9 @@ export function RealizationsPage() {
                   ),
                 )}
               </div>
-            ) : realizations.length >
-              0 ? (
+            ) : filtered.length > 0 ? (
               <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-                {realizations.map(
+                {filtered.map(
                   (item) => (
                     <article
                       key={item.id}
@@ -125,29 +217,38 @@ export function RealizationsPage() {
                       )}
 
                       <div className="p-5">
-                        {item.category
-                          ?.name && (
-                          <p className="text-xs font-bold uppercase tracking-wide text-goi-blue">
-                            {
-                              item
-                                .category
-                                .name
-                            }
-                          </p>
-                        )}
+                        <p className="text-xs font-bold uppercase tracking-wide text-goi-blue">
+                          {
+                            item.category
+                              .name
+                          }
+                        </p>
 
-                        <h2 className="mt-1 text-xl font-bold text-goi-navy">
+                        <h2 className="mt-2 text-xl font-bold text-goi-navy">
                           {item.title}
                         </h2>
 
-                        {item.location && (
-                          <p className="mt-3 flex items-center gap-2 text-sm text-goi-muted">
-                            <MapPin
-                              size={16}
-                            />
-                            {
-                              item.location
-                            }
+                        {(item.location ||
+                          item.projectYear) && (
+                          <p className="mt-3 flex flex-wrap items-center gap-2 text-sm text-goi-muted">
+                            {item.location && (
+                              <>
+                                <MapPin
+                                  size={15}
+                                />
+                                {
+                                  item.location
+                                }
+                              </>
+                            )}
+
+                            {item.projectYear && (
+                              <span>
+                                {
+                                  item.projectYear
+                                }
+                              </span>
+                            )}
                           </p>
                         )}
 
@@ -156,6 +257,16 @@ export function RealizationsPage() {
                             {item.summary}
                           </p>
                         )}
+
+                        <Link
+                          to={`/realisations/${item.slug}`}
+                          className="mt-5 inline-flex items-center gap-2 font-bold text-goi-blue"
+                        >
+                          Découvrir
+                          <ArrowRight
+                            size={17}
+                          />
+                        </Link>
                       </div>
                     </article>
                   ),
@@ -163,7 +274,7 @@ export function RealizationsPage() {
               </div>
             ) : (
               <div className="rounded-2xl bg-goi-surface p-8 text-center text-goi-muted">
-                Aucune réalisation publiée pour le moment.
+                Aucune réalisation publiée dans cette catégorie.
               </div>
             )}
           </div>

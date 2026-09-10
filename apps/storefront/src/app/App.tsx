@@ -17,6 +17,8 @@ import { ProductDetailPage } from '../pages/ProductDetailPage';
 import { ProductsPage } from '../pages/ProductsPage';
 import { RealizationsPage } from '../pages/RealizationsPage';
 import { ServicesPage } from '../pages/ServicesPage';
+import { RealizationDetailPage } from '../pages/RealizationDetailPage';
+import { ServiceDetailPage } from '../pages/ServiceDetailPage';
 
 export function App() {
   return (
@@ -50,8 +52,18 @@ export function App() {
             />
 
             <Route
+              path="/services/:slug"
+              element={<ServiceDetailPage />}
+            />
+
+            <Route
               path="/realisations"
               element={<RealizationsPage />}
+            />
+
+            <Route
+              path="/realisations/:slug"
+              element={<RealizationDetailPage />}
             />
 
             <Route

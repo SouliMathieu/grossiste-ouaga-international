@@ -133,15 +133,24 @@ export function ServicesPage() {
                           </p>
                         )}
 
-                        <Link
-                          to="/contact"
-                          className="mt-5 inline-flex items-center gap-2 font-bold text-goi-blue"
-                        >
-                          Demander un devis
-                          <ArrowRight
-                            size={17}
-                          />
-                        </Link>
+                        <div className="mt-5 flex flex-wrap gap-4">
+                          <Link
+                            to={`/services/${service.slug}`}
+                            className="inline-flex items-center gap-2 font-bold text-goi-blue"
+                          >
+                            Découvrir
+                            <ArrowRight
+                              size={17}
+                            />
+                          </Link>
+
+                          <Link
+                            to="/contact"
+                            className="font-semibold text-goi-muted"
+                          >
+                            Demander un devis
+                          </Link>
+                        </div>
                       </div>
                     </article>
                   ),
