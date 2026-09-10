@@ -235,6 +235,7 @@ model Product {
   attributes       ProductAttribute[]
   serviceLinks     ServiceProduct[]
   realizationLinks RealizationProduct[]
+  adCampaigns      AdCampaign[]
 
   @@index([categoryId, status])
   @@index([featured, status])
@@ -583,4 +584,103 @@ model ContactMessage {
 
   @@index([status, createdAt])
   @@map("contact_messages")
+}
+
+enum AdPlatform {
+  META
+  GOOGLE
+}
+
+enum AdIntegrationStatus {
+  NOT_CONNECTED
+  CONNECTING
+  CONNECTED
+  ERROR
+}
+
+enum AdCampaignStatus {
+  DRAFT
+  PENDING_REVIEW
+  ACTIVE
+  PAUSED
+  STOPPED
+  COMPLETED
+  REJECTED
+  FAILED
+}
+
+enum AdObjective {
+  WHATSAPP
+  PRODUCT_VISITS
+  SALES_CONVERSIONS
+}
+
+enum AdBudgetType {
+  DAILY
+  TOTAL
+}
+
+model AdIntegration {
+  id                 Int                 @id @default(autoincrement())
+  platform           AdPlatform          @unique
+  status             AdIntegrationStatus @default(NOT_CONNECTED)
+  externalAccountId  String?             @db.VarChar(191)
+  externalBusinessId String?             @db.VarChar(191)
+  externalPageId     String?             @db.VarChar(191)
+  externalProfileId  String?             @db.VarChar(191)
+  tokenRef           String?             @db.VarChar(500)
+  secretsMetadata    Json?
+  lastSyncAt         DateTime?
+  lastError          String?             @db.Text
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+
+  @@index([status])
+}
+
+model AdCampaign {
+  id                 Int              @id @default(autoincrement())
+  platform           AdPlatform
+  productId          Int
+  objective          AdObjective
+  budgetType         AdBudgetType
+  budgetAmount       Int
+  currency           String           @default("XOF") @db.VarChar(8)
+  startAt            DateTime
+  endAt              DateTime
+  audienceZone       String           @db.VarChar(500)
+  adText             String           @db.Text
+  creativeMediaId    Int
+  creativeSnapshot   Json
+  externalCampaignId String?          @db.VarChar(191)
+  externalGroupId    String?          @db.VarChar(191)
+  externalAdId       String?          @db.VarChar(191)
+  externalStatus     String?          @db.VarChar(120)
+  status             AdCampaignStatus @default(DRAFT)
+  lastSyncAt         DateTime?
+  lastError          String?          @db.Text
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  product Product            @relation(fields: [productId], references: [id], onDelete: Restrict)
+  metrics AdMetricSnapshot[]
+
+  @@index([platform, status])
+  @@index([productId])
+  @@index([startAt])
+}
+
+model AdMetricSnapshot {
+  id          Int      @id @default(autoincrement())
+  campaignId  Int
+  capturedAt  DateTime @default(now())
+  spend       Int      @default(0)
+  impressions Int      @default(0)
+  clicks      Int      @default(0)
+  conversions Int      @default(0)
+  rawMetrics  Json?
+
+  campaign AdCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@index([campaignId, capturedAt])
 }

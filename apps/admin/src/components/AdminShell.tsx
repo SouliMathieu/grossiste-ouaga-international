@@ -5,6 +5,7 @@ import {
   Images,
   LogOut,
   Menu,
+  Megaphone,
   MessageSquareText,
   PanelsTopLeft,
   Building2,
@@ -63,6 +64,11 @@ const navigation = [
     icon: WalletCards,
   },
   {
+    label: 'Publicités',
+    href: '/publicites',
+    icon: Megaphone,
+  },
+  {
     label: 'Médias',
     href: '/medias',
     icon: Images,
@@ -115,6 +121,11 @@ const pageMeta: Record<
     title: 'Comptes de paiement',
     description:
       'Configurez les comptes marchands utilisés par GOI.',
+  },
+  '/publicites': {
+    title: 'Publicités',
+    description:
+      'Préparez et suivez les campagnes Meta Ads et Google Ads.',
   },
   '/medias': {
     title: 'Bibliothèque média',

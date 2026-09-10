@@ -1,4 +1,8 @@
 import {
+  trackBeginCheckout,
+  trackOrderCreated,
+} from '../lib/marketing/tracking';
+import {
   Banknote,
   Building2,
   Check,
@@ -319,6 +323,30 @@ export function CheckoutPage() {
     setSubmitError(null);
     setIsSubmitting(true);
 
+    const trackingItems =
+      items.map((item) => ({
+        id: item.id,
+        sku: item.sku,
+        name: item.name,
+        price: item.price,
+        quantity: item.quantity,
+      }));
+
+    const trackingValue =
+      items.reduce(
+        (total, item) =>
+          total +
+          item.price *
+            item.quantity,
+        0,
+      );
+
+    trackBeginCheckout({
+      currency: 'XOF',
+      value: trackingValue,
+      items: trackingItems,
+    });
+
     try {
       const response = await fetch(
         `${API_BASE_URL}/api/orders`,
@@ -389,6 +417,15 @@ export function CheckoutPage() {
         reference,
         accessToken,
       );
+
+      trackOrderCreated({
+        currency: 'XOF',
+        value: trackingValue,
+        items: trackingItems,
+        transactionId: reference,
+        eventId:
+          `order-${reference}`,
+      });
 
       sessionStorage.removeItem(
         CHECKOUT_DRAFT_KEY,

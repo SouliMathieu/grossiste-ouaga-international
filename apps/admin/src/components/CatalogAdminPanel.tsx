@@ -11,6 +11,7 @@ import {
   useState,
   type FormEvent,
 } from 'react';
+import { Link } from 'react-router-dom';
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:4000';
@@ -1189,6 +1190,16 @@ export function CatalogAdminPanel() {
                         >
                           Modifier
                         </button>
+
+                        {product.status ===
+                          'PUBLISHED' && (
+                          <Link
+                            to={`/publicites?productId=${product.id}`}
+                            className="inline-flex min-h-10 items-center rounded-lg bg-emerald-50 px-3 font-semibold text-emerald-700"
+                          >
+                            Faire une publicité
+                          </Link>
+                        )}
 
                         {product.status !==
                           'ARCHIVED' && (

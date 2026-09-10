@@ -1,5 +1,6 @@
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { prisma } from '../lib/prisma.js';
+import { sendMetaLeadConversion } from '../lib/meta-conversions.js';
 import type {
   CreateOrderInput,
   SubmitPaymentInput,
@@ -189,6 +190,15 @@ export async function createOrder(input: CreateOrderInput) {
         },
       },
     });
+
+    /*
+     * L'envoi Meta est volontairement non bloquant :
+     * la commande reste valide même si Meta est
+     * absent, lent ou indisponible.
+     */
+    void sendMetaLeadConversion(
+      order,
+    );
 
     return {
       order,

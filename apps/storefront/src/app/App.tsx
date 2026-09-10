@@ -1,3 +1,4 @@
+import { MarketingTracking } from '../components/marketing/MarketingTracking';
 import {
   BrowserRouter,
   Navigate,
@@ -23,6 +24,7 @@ import { ServiceDetailPage } from '../pages/ServiceDetailPage';
 export function App() {
   return (
     <BrowserRouter>
+      <MarketingTracking />
       <CompanyProvider>
         <CartProvider>
           <Routes>

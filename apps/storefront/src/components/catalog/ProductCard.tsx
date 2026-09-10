@@ -3,6 +3,7 @@ import {
   ShoppingCart,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { trackAddToCart } from '../../lib/marketing/tracking';
 import { useCart } from '../../context/CartContext';
 import {
   getAvailabilityLabel,
@@ -51,6 +52,23 @@ export function ProductCard({
       },
       product.minOrderQty,
     );
+
+    trackAddToCart({
+      currency: 'XOF',
+      value:
+        effectivePrice *
+        product.minOrderQty,
+      items: [
+        {
+          id: product.id,
+          sku: product.sku,
+          name: product.name,
+          price: effectivePrice,
+          quantity:
+            product.minOrderQty,
+        },
+      ],
+    });
   }
 
   return (

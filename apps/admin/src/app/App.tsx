@@ -26,6 +26,7 @@ import { PaymentsAdminPanel } from '../components/PaymentsAdminPanel';
 import { CompanySettingsAdminPanel } from '../components/CompanySettingsAdminPanel';
 import { ContactMessagesAdminPanel } from '../components/ContactMessagesAdminPanel';
 import { SiteContentAdminPanel } from '../components/SiteContentAdminPanel';
+import { AdsAdminPanel } from '../components/AdsAdminPanel';
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ??
@@ -390,6 +391,13 @@ export function App() {
             path="/messages"
             element={
               <ContactMessagesAdminPanel />
+            }
+          />
+
+          <Route
+            path="/publicites"
+            element={
+              <AdsAdminPanel />
             }
           />
 

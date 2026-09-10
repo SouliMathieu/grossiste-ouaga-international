@@ -38,6 +38,11 @@ import {
 import {
   getWhatsAppUrl,
 } from '../lib/content';
+import {
+  setDocumentSeo,
+  trackAddToCart,
+  trackViewItem,
+} from '../lib/marketing/tracking';
 
 function formatPrice(
   price: number,
@@ -367,6 +372,55 @@ export function ProductDetailPage() {
       `Bonjour GOI, je souhaite avoir des informations sur le produit "${product.name}" (${product.sku}).`,
     );
 
+  useEffect(() => {
+    if (!product) {
+      return;
+    }
+
+    setDocumentSeo({
+      title:
+        `${product.name} | Grossiste Ouaga International`,
+      description:
+        `${product.name}${
+          product.brand
+            ? ` — ${product.brand}`
+            : ''
+        }. Disponible auprès de Grossiste Ouaga International à Ouagadougou.`,
+      path:
+        `/produits/${product.slug}`,
+      image:
+        product.imageUrl,
+      type: 'product',
+    });
+
+    trackViewItem({
+      currency: 'XOF',
+      ...(effectivePrice !== null
+        ? {
+            value:
+              effectivePrice,
+          }
+        : {}),
+      items: [
+        {
+          id: product.id,
+          sku: product.sku,
+          name: product.name,
+          ...(effectivePrice !== null
+            ? {
+                price:
+                  effectivePrice,
+              }
+            : {}),
+          quantity: 1,
+        },
+      ],
+    });
+  }, [
+    product?.id,
+    effectivePrice,
+  ]);
+
   function selectRelativeImage(
     direction: -1 | 1,
   ) {
@@ -419,6 +473,22 @@ export function ProductDetailPage() {
       },
       quantity,
     );
+
+    trackAddToCart({
+      currency: 'XOF',
+      value:
+        effectivePrice *
+        quantity,
+      items: [
+        {
+          id: product.id,
+          sku: product.sku,
+          name: product.name,
+          price: effectivePrice,
+          quantity,
+        },
+      ],
+    });
 
     setAdded(true);
 
