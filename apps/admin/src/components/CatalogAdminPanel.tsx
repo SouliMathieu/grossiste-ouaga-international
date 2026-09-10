@@ -1,5 +1,8 @@
 import { adminFetch } from '../lib/admin-fetch';
 import {
+  ProductMediaFields,
+} from './ProductMediaFields';
+import {
   useEffect,
   useState,
   type FormEvent,
@@ -12,6 +15,21 @@ type Category = {
   id: number;
   name: string;
   slug: string;
+};
+
+type ProductMediaAsset = {
+  id: number;
+  publicId: string;
+  secureUrl: string;
+  resourceType: string;
+  width: number | null;
+  height: number | null;
+  format: string | null;
+  bytes: number | null;
+  alt: string | null;
+  caption: string | null;
+  folder: string;
+  status: string;
 };
 
 type Product = {
@@ -37,6 +55,8 @@ type Product = {
   featured: boolean;
   status: string;
   imageUrl: string | null;
+  mainMedia: ProductMediaAsset | null;
+  galleryMedia: ProductMediaAsset[];
   keywords: string | null;
   category: Category;
 };
@@ -65,6 +85,8 @@ type ProductForm = {
   featured: boolean;
   status: string;
   imageUrl: string;
+  mainMediaId: number | null;
+  galleryMediaIds: number[];
   keywords: string;
 };
 
@@ -87,6 +109,8 @@ const emptyForm: ProductForm = {
   featured: false,
   status: 'PUBLISHED',
   imageUrl: '',
+  mainMediaId: null,
+  galleryMediaIds: [],
   keywords: '',
 };
 
@@ -224,9 +248,11 @@ export function CatalogAdminPanel() {
     void loadData();
   }, []);
 
-  function updateField(
-    field: keyof ProductForm,
-    value: string | boolean,
+  function updateField<
+    K extends keyof ProductForm,
+  >(
+    field: K,
+    value: ProductForm[K],
   ) {
     setForm((current) => ({
       ...current,
@@ -283,6 +309,12 @@ export function CatalogAdminPanel() {
       featured: product.featured,
       status: product.status,
       imageUrl: product.imageUrl ?? '',
+      mainMediaId:
+        product.mainMedia?.id ?? null,
+      galleryMediaIds:
+        product.galleryMedia.map(
+          (item) => item.id,
+        ),
       keywords: product.keywords ?? '',
     });
 
@@ -421,6 +453,10 @@ export function CatalogAdminPanel() {
         status: form.status,
         imageUrl:
           form.imageUrl.trim() || null,
+        mainMediaId:
+          form.mainMediaId,
+        galleryMediaIds:
+          form.galleryMediaIds,
         keywords:
           form.keywords.trim() || null,
       };
@@ -960,24 +996,30 @@ export function CatalogAdminPanel() {
             </span>
           </label>
 
-          <label className="md:col-span-2">
-            <span className="text-sm font-semibold">
-              URL image
-            </span>
-
-            <input
-              type="url"
-              value={form.imageUrl}
-              onChange={(event) =>
-                updateField(
-                  'imageUrl',
-                  event.target.value,
-                )
-              }
-              placeholder="https://..."
-              className="mt-2 h-12 w-full rounded-lg border border-slate-200 px-4"
-            />
-          </label>
+          <ProductMediaFields
+            mainMediaId={
+              form.mainMediaId
+            }
+            galleryMediaIds={
+              form.galleryMediaIds
+            }
+            onMainMediaChange={(
+              mediaId,
+            ) =>
+              updateField(
+                'mainMediaId',
+                mediaId,
+              )
+            }
+            onGalleryMediaChange={(
+              mediaIds,
+            ) =>
+              updateField(
+                'galleryMediaIds',
+                mediaIds,
+              )
+            }
+          />
 
           <label className="md:col-span-2">
             <span className="text-sm font-semibold">
