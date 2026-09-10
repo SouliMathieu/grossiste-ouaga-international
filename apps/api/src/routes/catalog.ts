@@ -129,6 +129,12 @@ function serializeProduct(product: {
   media: Parameters<
     typeof serializeProductMediaLinks
   >[0];
+  attributes?: Array<{
+    id: number;
+    name: string;
+    value: string;
+    sortOrder: number;
+  }>;
   createdAt: Date;
   category: {
     id: number;
@@ -183,6 +189,10 @@ function serializeProduct(product: {
       serializedMedia.mainMedia,
     galleryMedia:
       serializedMedia.galleryMedia,
+    datasheetMedia:
+      serializedMedia.datasheetMedia,
+    attributes:
+      product.attributes ?? [],
     createdAt: product.createdAt,
     category: product.category,
   };
@@ -403,6 +413,11 @@ catalogRouter.get('/products/:slug', async (request, response) => {
           include: {
             media: true,
           },
+          orderBy: {
+            sortOrder: 'asc',
+          },
+        },
+        attributes: {
           orderBy: {
             sortOrder: 'asc',
           },

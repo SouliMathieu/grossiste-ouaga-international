@@ -57,6 +57,29 @@ const productSchema = z.object({
     )
     .max(20)
     .optional(),
+  datasheetMediaId: z
+    .number()
+    .int()
+    .positive()
+    .nullable()
+    .optional(),
+  attributes: z
+    .array(
+      z.object({
+        name: z
+          .string()
+          .trim()
+          .min(1)
+          .max(120),
+        value: z
+          .string()
+          .trim()
+          .min(1)
+          .max(500),
+      }),
+    )
+    .max(50)
+    .optional(),
   keywords: nullableText,
 }).superRefine((data, ctx) => {
   const priceOnRequest =
@@ -201,6 +224,12 @@ function serializeProduct(product: {
   media: Parameters<
     typeof serializeProductMediaLinks
   >[0];
+  attributes?: Array<{
+    id: number;
+    name: string;
+    value: string;
+    sortOrder: number;
+  }>;
   createdAt: Date;
   updatedAt: Date;
   category: {
@@ -247,6 +276,10 @@ function serializeProduct(product: {
       serializedMedia.mainMedia,
     galleryMedia:
       serializedMedia.galleryMedia,
+    datasheetMedia:
+      serializedMedia.datasheetMedia,
+    attributes:
+      product.attributes ?? [],
     keywords: product.keywords,
     createdAt: product.createdAt,
     updatedAt: product.updatedAt,
@@ -334,10 +367,58 @@ async function validateProductMediaAssets(
   return null;
 }
 
+async function validateProductDatasheet(
+  mediaId: number | null,
+) {
+  if (mediaId === null) {
+    return null;
+  }
+
+  const asset =
+    await prisma.mediaAsset.findUnique({
+      where: {
+        id: mediaId,
+      },
+      select: {
+        id: true,
+        resourceType: true,
+        status: true,
+        format: true,
+      },
+    });
+
+  if (!asset) {
+    return {
+      error: 'UNKNOWN_PRODUCT_DATASHEET',
+      message:
+        'La fiche technique sélectionnée est introuvable.',
+    };
+  }
+
+  if (asset.status !== 'READY') {
+    return {
+      error: 'PRODUCT_DATASHEET_NOT_READY',
+      message:
+        'Seul un document actif peut être utilisé comme fiche technique.',
+    };
+  }
+
+  if (asset.resourceType !== 'RAW') {
+    return {
+      error: 'INVALID_PRODUCT_DATASHEET_TYPE',
+      message:
+        'La fiche technique doit être un document PDF.',
+    };
+  }
+
+  return null;
+}
+
 function buildProductMediaRows(
   productId: number,
   mainMediaId: number | null,
   galleryMediaIds: number[],
+  datasheetMediaId: number | null = null,
 ) {
   return [
     ...(mainMediaId === null
@@ -358,6 +439,16 @@ function buildProductMediaRows(
         sortOrder: index,
       }),
     ),
+    ...(datasheetMediaId === null
+      ? []
+      : [
+          {
+            productId,
+            mediaId: datasheetMediaId,
+            role: 'DATASHEET' as const,
+            sortOrder: 0,
+          },
+        ]),
   ];
 }
 
@@ -378,6 +469,11 @@ adminCatalogRouter.get(
             include: {
               media: true,
             },
+            orderBy: {
+              sortOrder: 'asc',
+            },
+          },
+          attributes: {
             orderBy: {
               sortOrder: 'asc',
             },
@@ -443,6 +539,12 @@ adminCatalogRouter.post(
       const galleryMediaIds =
         parsed.data.galleryMediaIds ?? [];
 
+      const datasheetMediaId =
+        parsed.data.datasheetMediaId ?? null;
+
+      const attributes =
+        parsed.data.attributes ?? [];
+
       const mediaValidation =
         await validateProductMediaAssets(
           mainMediaId,
@@ -452,6 +554,17 @@ adminCatalogRouter.post(
       if (mediaValidation) {
         return response.status(400).json(
           mediaValidation,
+        );
+      }
+
+      const datasheetValidation =
+        await validateProductDatasheet(
+          datasheetMediaId,
+        );
+
+      if (datasheetValidation) {
+        return response.status(400).json(
+          datasheetValidation,
         );
       }
 
@@ -540,11 +653,26 @@ adminCatalogRouter.post(
               temporaryProduct.id,
               mainMediaId,
               galleryMediaIds,
+              datasheetMediaId,
             );
 
           if (mediaRows.length > 0) {
             await tx.productMedia.createMany({
               data: mediaRows,
+            });
+          }
+
+          if (attributes.length > 0) {
+            await tx.productAttribute.createMany({
+              data: attributes.map(
+                (attribute, index) => ({
+                  productId:
+                    temporaryProduct.id,
+                  name: attribute.name,
+                  value: attribute.value,
+                  sortOrder: index,
+                }),
+              ),
             });
           }
 
@@ -568,6 +696,11 @@ adminCatalogRouter.post(
                 include: {
                   media: true,
                 },
+                orderBy: {
+                  sortOrder: 'asc',
+                },
+              },
+              attributes: {
                 orderBy: {
                   sortOrder: 'asc',
                 },
@@ -665,6 +798,8 @@ adminCatalogRouter.patch(
         parsed.data.mainMediaId !==
           undefined ||
         parsed.data.galleryMediaIds !==
+          undefined ||
+        parsed.data.datasheetMediaId !==
           undefined;
 
       let mainMediaId:
@@ -672,6 +807,9 @@ adminCatalogRouter.patch(
 
       let galleryMediaIds:
         number[] = [];
+
+      let datasheetMediaId:
+        number | null = null;
 
       if (mediaSelectionProvided) {
         const existingMedia =
@@ -682,6 +820,7 @@ adminCatalogRouter.patch(
                 in: [
                   'MAIN',
                   'GALLERY',
+                  'DATASHEET',
                 ],
               },
             },
@@ -712,6 +851,13 @@ adminCatalogRouter.patch(
               (item) => item.mediaId,
             );
 
+        const existingDatasheetMediaId =
+          existingMedia.find(
+            (item) =>
+              item.role ===
+              'DATASHEET',
+          )?.mediaId ?? null;
+
         mainMediaId =
           parsed.data.mainMediaId ===
           undefined
@@ -724,6 +870,12 @@ adminCatalogRouter.patch(
             ? existingGalleryMediaIds
             : parsed.data.galleryMediaIds;
 
+        datasheetMediaId =
+          parsed.data.datasheetMediaId ===
+          undefined
+            ? existingDatasheetMediaId
+            : parsed.data.datasheetMediaId;
+
         const mediaValidation =
           await validateProductMediaAssets(
             mainMediaId,
@@ -734,6 +886,17 @@ adminCatalogRouter.patch(
           return response
             .status(400)
             .json(mediaValidation);
+        }
+
+        const datasheetValidation =
+          await validateProductDatasheet(
+            datasheetMediaId,
+          );
+
+        if (datasheetValidation) {
+          return response
+            .status(400)
+            .json(datasheetValidation);
         }
       }
 
@@ -839,6 +1002,7 @@ adminCatalogRouter.patch(
                   productId,
                   mainMediaId,
                   galleryMediaIds,
+                  datasheetMediaId,
                 );
 
               if (
@@ -846,6 +1010,40 @@ adminCatalogRouter.patch(
               ) {
                 await tx.productMedia.createMany({
                   data: mediaRows,
+                });
+              }
+            }
+
+            if (
+              parsed.data.attributes !==
+              undefined
+            ) {
+              await tx.productAttribute.deleteMany({
+                where: {
+                  productId,
+                },
+              });
+
+              if (
+                parsed.data.attributes.length >
+                0
+              ) {
+                await tx.productAttribute.createMany({
+                  data:
+                    parsed.data.attributes.map(
+                      (
+                        attribute,
+                        index,
+                      ) => ({
+                        productId,
+                        name:
+                          attribute.name,
+                        value:
+                          attribute.value,
+                        sortOrder:
+                          index,
+                      }),
+                    ),
                 });
               }
             }

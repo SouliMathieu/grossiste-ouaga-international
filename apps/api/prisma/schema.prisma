@@ -232,6 +232,7 @@ model Product {
 
   category         Category             @relation(fields: [categoryId], references: [id])
   media            ProductMedia[]
+  attributes       ProductAttribute[]
   serviceLinks     ServiceProduct[]
   realizationLinks RealizationProduct[]
 
@@ -438,6 +439,21 @@ model RealizationProduct {
   @@id([realizationId, productId])
   @@index([productId])
   @@map("realization_products")
+}
+
+model ProductAttribute {
+  id        Int      @id @default(autoincrement())
+  productId Int      @map("product_id")
+  name      String   @db.VarChar(120)
+  value     String   @db.VarChar(500)
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId, sortOrder])
+  @@map("product_attributes")
 }
 
 model ProductMedia {

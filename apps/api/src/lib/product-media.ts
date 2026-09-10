@@ -60,16 +60,19 @@ export function serializeProductMediaLinks(
 
   const usableLinks = links.filter(
     (link) =>
-      link.media.resourceType ===
-        'IMAGE' &&
-      (
-        !readyOnly ||
-        link.media.status === 'READY'
-      ),
+      !readyOnly ||
+      link.media.status === 'READY',
   );
 
+  const imageLinks =
+    usableLinks.filter(
+      (link) =>
+        link.media.resourceType ===
+        'IMAGE',
+    );
+
   const mainLink =
-    usableLinks
+    imageLinks
       .filter(
         (link) =>
           link.role === 'MAIN',
@@ -81,7 +84,7 @@ export function serializeProductMediaLinks(
       )[0] ?? null;
 
   const galleryMedia =
-    usableLinks
+    imageLinks
       .filter(
         (link) =>
           link.role === 'GALLERY',
@@ -95,9 +98,25 @@ export function serializeProductMediaLinks(
         (link) => link.media,
       );
 
+  const datasheetLink =
+    usableLinks
+      .filter(
+        (link) =>
+          link.role === 'DATASHEET' &&
+          link.media.resourceType ===
+            'RAW',
+      )
+      .sort(
+        (left, right) =>
+          left.sortOrder -
+          right.sortOrder,
+      )[0] ?? null;
+
   return {
     mainMedia:
       mainLink?.media ?? null,
     galleryMedia,
+    datasheetMedia:
+      datasheetLink?.media ?? null,
   };
 }
