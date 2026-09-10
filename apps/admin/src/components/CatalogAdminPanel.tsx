@@ -3,6 +3,10 @@ import {
   ProductMediaFields,
 } from './ProductMediaFields';
 import {
+  ProductAttributesFields,
+  type ProductAttributeInput,
+} from './ProductAttributesFields';
+import {
   useEffect,
   useState,
   type FormEvent,
@@ -57,6 +61,13 @@ type Product = {
   imageUrl: string | null;
   mainMedia: ProductMediaAsset | null;
   galleryMedia: ProductMediaAsset[];
+  datasheetMedia: ProductMediaAsset | null;
+  attributes: Array<{
+    id: number;
+    name: string;
+    value: string;
+    sortOrder: number;
+  }>;
   keywords: string | null;
   category: Category;
 };
@@ -87,6 +98,8 @@ type ProductForm = {
   imageUrl: string;
   mainMediaId: number | null;
   galleryMediaIds: number[];
+  datasheetMediaId: number | null;
+  attributes: ProductAttributeInput[];
   keywords: string;
 };
 
@@ -111,6 +124,8 @@ const emptyForm: ProductForm = {
   imageUrl: '',
   mainMediaId: null,
   galleryMediaIds: [],
+  datasheetMediaId: null,
+  attributes: [],
   keywords: '',
 };
 
@@ -315,6 +330,16 @@ export function CatalogAdminPanel() {
         product.galleryMedia.map(
           (item) => item.id,
         ),
+      datasheetMediaId:
+        product.datasheetMedia?.id ??
+        null,
+      attributes:
+        product.attributes.map(
+          (attribute) => ({
+            name: attribute.name,
+            value: attribute.value,
+          }),
+        ),
       keywords: product.keywords ?? '',
     });
 
@@ -457,6 +482,21 @@ export function CatalogAdminPanel() {
           form.mainMediaId,
         galleryMediaIds:
           form.galleryMediaIds,
+        datasheetMediaId:
+          form.datasheetMediaId,
+        attributes:
+          form.attributes
+            .filter(
+              (attribute) =>
+                attribute.name.trim() !== '' &&
+                attribute.value.trim() !== '',
+            )
+            .map((attribute) => ({
+              name:
+                attribute.name.trim(),
+              value:
+                attribute.value.trim(),
+            })),
         keywords:
           form.keywords.trim() || null,
       };
@@ -1003,6 +1043,9 @@ export function CatalogAdminPanel() {
             galleryMediaIds={
               form.galleryMediaIds
             }
+            datasheetMediaId={
+              form.datasheetMediaId
+            }
             onMainMediaChange={(
               mediaId,
             ) =>
@@ -1017,6 +1060,24 @@ export function CatalogAdminPanel() {
               updateField(
                 'galleryMediaIds',
                 mediaIds,
+              )
+            }
+            onDatasheetMediaChange={(
+              mediaId,
+            ) =>
+              updateField(
+                'datasheetMediaId',
+                mediaId,
+              )
+            }
+          />
+
+          <ProductAttributesFields
+            value={form.attributes}
+            onChange={(attributes) =>
+              updateField(
+                'attributes',
+                attributes,
               )
             }
           />
