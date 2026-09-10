@@ -1,5 +1,11 @@
-import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import {
+  BrowserRouter,
+  Navigate,
+  Route,
+  Routes,
+} from 'react-router-dom';
 import { CartProvider } from '../context/CartContext';
+import { CompanyProvider } from '../context/CompanyContext';
 import { AboutPage } from '../pages/AboutPage';
 import { CartPage } from '../pages/CartPage';
 import { CheckoutPage } from '../pages/CheckoutPage';
@@ -9,43 +15,87 @@ import { NotFoundPage } from '../pages/NotFoundPage';
 import { PaymentPage } from '../pages/PaymentPage';
 import { ProductDetailPage } from '../pages/ProductDetailPage';
 import { ProductsPage } from '../pages/ProductsPage';
-import { PromotionsPage } from '../pages/PromotionsPage';
+import { RealizationsPage } from '../pages/RealizationsPage';
+import { ServicesPage } from '../pages/ServicesPage';
 
 export function App() {
   return (
     <BrowserRouter>
-      <CartProvider>
-        <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/produits" element={<ProductsPage />} />
-          <Route path="/produit/:slug" element={<ProductDetailPage />} />
+      <CompanyProvider>
+        <CartProvider>
+          <Routes>
+            <Route
+              path="/"
+              element={<HomePage />}
+            />
 
-          <Route
-            path="/promotions"
-            element={<PromotionsPage />}
-          />
+            <Route
+              path="/produits"
+              element={<ProductsPage />}
+            />
 
-          <Route
-            path="/a-propos"
-            element={<AboutPage />}
-          />
+            <Route
+              path="/produit/:slug"
+              element={<ProductDetailPage />}
+            />
 
-          <Route
-            path="/contact"
-            element={<ContactPage />}
-          />
+            <Route
+              path="/produits/:slug"
+              element={<ProductDetailPage />}
+            />
 
-          <Route path="/panier" element={<CartPage />} />
-          <Route path="/commande" element={<CheckoutPage />} />
+            <Route
+              path="/services"
+              element={<ServicesPage />}
+            />
 
-          <Route
-            path="/commande/:reference/paiement"
-            element={<PaymentPage />}
-          />
+            <Route
+              path="/realisations"
+              element={<RealizationsPage />}
+            />
 
-          <Route path="*" element={<NotFoundPage />} />
-        </Routes>
-      </CartProvider>
+            <Route
+              path="/a-propos"
+              element={<AboutPage />}
+            />
+
+            <Route
+              path="/contact"
+              element={<ContactPage />}
+            />
+
+            <Route
+              path="/panier"
+              element={<CartPage />}
+            />
+
+            <Route
+              path="/commande"
+              element={<CheckoutPage />}
+            />
+
+            <Route
+              path="/commande/:reference/paiement"
+              element={<PaymentPage />}
+            />
+
+            <Route
+              path="/promotions"
+              element={
+                <Navigate
+                  to="/produits"
+                  replace
+                />
+              }
+            />
+
+            <Route
+              path="*"
+              element={<NotFoundPage />}
+            />
+          </Routes>
+        </CartProvider>
+      </CompanyProvider>
     </BrowserRouter>
   );
 }

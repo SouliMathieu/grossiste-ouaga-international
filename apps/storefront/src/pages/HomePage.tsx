@@ -1,81 +1,161 @@
 import {
   ArrowRight,
-  BadgeCheck,
-  CreditCard,
-  PackageSearch,
-  ShoppingBag,
-  Truck,
+  Cpu,
+  House,
+  MapPin,
+  ShieldCheck,
+  Sun,
+  Zap,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import {
+  useEffect,
+  useState,
+} from 'react';
 import { Link } from 'react-router-dom';
-import { CategoryCard } from '../components/catalog/CategoryCard';
 import { ProductCard } from '../components/catalog/ProductCard';
-import { B2BSection } from '../components/home/B2BSection';
-import { PromoBanner } from '../components/home/PromoBanner';
-import { WhyGOI } from '../components/home/WhyGOI';
+import { HomeCarousel } from '../components/home/HomeCarousel';
 import { SiteFooter } from '../components/layout/SiteFooter';
 import { SiteHeader } from '../components/layout/SiteHeader';
 import { TopBar } from '../components/layout/TopBar';
 import {
-  getCategories,
+  getHomeContent,
+  type HomeContent,
+} from '../lib/content';
+import {
   getProducts,
-  type CatalogCategory,
   type CatalogProduct,
 } from '../lib/catalog';
 
-const services = [
+const domains = [
   {
-    icon: PackageSearch,
-    title: 'Catalogue structuré',
-    text: 'Références et disponibilités clairement présentées.',
+    title: 'Énergie solaire',
+    text: 'Équipements et solutions liés à l’énergie solaire.',
+    icon: Sun,
+    query: 'solaire',
   },
   {
-    icon: ShoppingBag,
-    title: 'Commande en ligne',
-    text: 'Préparez votre panier depuis le catalogue GOI.',
+    title: 'Électricité',
+    text: 'Matériels et équipements électriques.',
+    icon: Zap,
+    query: 'électricité',
   },
   {
-    icon: CreditCard,
-    title: 'Paiement adapté',
-    text: 'Plusieurs moyens de paiement selon votre commande.',
+    title: 'Électronique',
+    text: 'Produits et équipements électroniques.',
+    icon: Cpu,
+    query: 'électronique',
   },
   {
-    icon: Truck,
-    title: 'Livraison ou retrait',
-    text: 'Choisissez le mode qui correspond à votre besoin.',
+    title: 'Électroménager',
+    text: 'Équipements pour particuliers et professionnels.',
+    icon: House,
+    query: 'électroménager',
+  },
+];
+
+const fallbackTrust = [
+  {
+    id: -1,
+    title:
+      'Produits et services au même endroit',
+    description:
+      'Découvrez vos équipements et sollicitez GOI pour vos besoins d’installation solaire ou électrique.',
+  },
+  {
+    id: -2,
+    title: 'Une offre diversifiée',
+    description:
+      'Solaire, électricité, électronique et électroménager réunis dans un même catalogue.',
+  },
+  {
+    id: -3,
+    title: 'Un interlocuteur local',
+    description:
+      'GOI exerce ses activités depuis Ouagadougou et reste facilement joignable pour vos demandes.',
+  },
+  {
+    id: -4,
+    title:
+      'Un parcours adapté à votre besoin',
+    description:
+      'Consultez les produits, demandez un devis, commandez en ligne ou contactez directement GOI.',
   },
 ];
 
 export function HomePage() {
-  const [categories, setCategories] = useState<
-    CatalogCategory[]
-  >([]);
+  const [home, setHome] =
+    useState<HomeContent>({
+      slides: [],
+      trustCards: [],
+      services: [],
+      realizations: [],
+    });
 
-  const [products, setProducts] = useState<
-    CatalogProduct[]
-  >([]);
+  const [products, setProducts] =
+    useState<CatalogProduct[]>([]);
 
-  const [isLoading, setIsLoading] = useState(true);
+  const [offers, setOffers] =
+    useState<CatalogProduct[]>([]);
+
+  const [isLoading, setIsLoading] =
+    useState(true);
+
   const [loadError, setLoadError] =
     useState<string | null>(null);
 
   useEffect(() => {
-    const controller = new AbortController();
+    const controller =
+      new AbortController();
 
     Promise.all([
-      getCategories(controller.signal),
+      getHomeContent(
+        controller.signal,
+      ),
       getProducts(
         {
-          featured: true,
           sort: 'newest',
         },
         controller.signal,
       ),
     ])
-      .then(([categoryData, productData]) => {
-        setCategories(categoryData.slice(0, 4));
-        setProducts(productData.slice(0, 4));
-      })
+      .then(
+        ([
+          homeData,
+          productData,
+        ]) => {
+          setHome(homeData);
+
+          const featured =
+            productData.filter(
+              (product) =>
+                product.featured,
+            );
+
+          setProducts(
+            (
+              featured.length > 0
+                ? featured
+                : productData
+            ).slice(0, 4),
+          );
+
+          setOffers(
+            productData
+              .filter(
+                (product) =>
+                  Boolean(
+                    (
+                      product as CatalogProduct & {
+                        promotionActive?: boolean;
+                      }
+                    )
+                      .promotionActive,
+                  ),
+              )
+              .slice(0, 4),
+          );
+        },
+      )
       .catch((error: unknown) => {
         if (
           error instanceof DOMException &&
@@ -87,7 +167,7 @@ export function HomePage() {
         setLoadError(
           error instanceof Error
             ? error.message
-            : 'Impossible de charger le catalogue.',
+            : 'Impossible de charger l’accueil.',
         );
       })
       .finally(() => {
@@ -96,8 +176,14 @@ export function HomePage() {
         }
       });
 
-    return () => controller.abort();
+    return () =>
+      controller.abort();
   }, []);
+
+  const trustItems =
+    home.trustCards.length > 0
+      ? home.trustCards
+      : fallbackTrust;
 
   return (
     <>
@@ -105,164 +191,97 @@ export function HomePage() {
       <SiteHeader />
 
       <main>
-        <section className="relative overflow-hidden bg-goi-navy text-white">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(37,99,235,0.18),transparent_32%)]" />
+        <HomeCarousel
+          slides={home.slides}
+        />
 
-          <div className="relative mx-auto grid max-w-[1360px] gap-10 px-4 py-14 sm:px-6 sm:py-16 lg:grid-cols-[1.08fr_0.92fr] lg:items-center lg:py-20">
-            <div>
-              <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-sm font-semibold text-goi-gold">
-                <BadgeCheck size={16} />
-                Grossiste & distribution à Ouagadougou
-              </div>
+        {loadError && (
+          <div className="border-b border-red-100 bg-red-50">
+            <div className="mx-auto max-w-[1360px] px-4 py-3 text-sm font-medium text-goi-danger sm:px-6">
+              {loadError}
+            </div>
+          </div>
+        )}
 
-              <h1 className="mt-5 max-w-3xl text-4xl font-black leading-[1.08] tracking-tight sm:text-5xl lg:text-[56px]">
-                Des produits fiables.
-                <span className="block text-goi-gold">
-                  Des commandes simples.
-                </span>
-              </h1>
-
-              <p className="mt-5 max-w-2xl text-base leading-7 text-slate-300 sm:text-lg sm:leading-8">
-                Découvrez le catalogue GOI, consultez les
-                références disponibles et préparez votre commande
-                directement en ligne.
+        <section className="bg-goi-ivory py-14 sm:py-16">
+          <div className="mx-auto max-w-[1360px] px-4 sm:px-6">
+            <div className="max-w-2xl">
+              <p className="text-sm font-bold uppercase tracking-[0.12em] text-goi-blue">
+                Nos domaines
               </p>
 
-              <div className="mt-7 flex flex-wrap gap-3">
-                <Link
-                  to="/produits"
-                  className="inline-flex min-h-12 items-center gap-2 rounded-xl bg-goi-blue px-6 font-semibold text-white transition hover:bg-blue-700"
-                >
-                  Voir le catalogue
-                  <ArrowRight size={18} />
-                </Link>
-
-                <Link
-                  to="/contact"
-                  className="inline-flex min-h-12 items-center rounded-xl border border-white/20 bg-white/5 px-6 font-semibold text-white transition hover:bg-white/10"
-                >
-                  Demander un devis
-                </Link>
-              </div>
+              <h2 className="mt-2 text-3xl font-extrabold text-goi-navy">
+                Quatre univers pour vos besoins
+              </h2>
             </div>
 
-            <div className="rounded-2xl border border-white/10 bg-white/[0.055] p-5 shadow-2xl backdrop-blur sm:p-6">
-              <div className="mb-5">
-                <p className="text-sm font-semibold uppercase tracking-wider text-goi-gold">
-                  Votre parcours GOI
-                </p>
-
-                <h2 className="mt-2 text-2xl font-bold sm:text-3xl">
-                  Commander en toute simplicité
-                </h2>
-              </div>
-
-              <div className="grid gap-3 sm:grid-cols-2">
-                {services.map(({ icon: Icon, title, text }) => (
-                  <article
+            <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {domains.map(
+                ({
+                  title,
+                  text,
+                  icon: Icon,
+                  query,
+                }) => (
+                  <Link
                     key={title}
-                    className="rounded-xl border border-white/10 bg-white/[0.045] p-4"
+                    to={`/produits?q=${encodeURIComponent(
+                      query,
+                    )}`}
+                    className="group rounded-2xl border border-[#d8ded8] bg-white p-5 transition hover:-translate-y-1 hover:shadow-lg"
                   >
-                    <div className="flex size-10 items-center justify-center rounded-lg bg-goi-gold text-goi-navy">
-                      <Icon size={19} />
+                    <div className="flex size-12 items-center justify-center rounded-xl bg-goi-gold text-goi-navy">
+                      <Icon size={23} />
                     </div>
 
-                    <h3 className="mt-4 font-bold">
+                    <h3 className="mt-5 text-lg font-bold text-goi-navy">
                       {title}
                     </h3>
 
-                    <p className="mt-1.5 text-sm leading-6 text-slate-300">
+                    <p className="mt-2 text-sm leading-6 text-goi-muted">
                       {text}
                     </p>
-                  </article>
-                ))}
-              </div>
+
+                    <span className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-goi-blue">
+                      Découvrir
+                      <ArrowRight
+                        size={16}
+                      />
+                    </span>
+                  </Link>
+                ),
+              )}
             </div>
           </div>
         </section>
 
-        {loadError && (
-          <section className="border-b border-red-100 bg-red-50 py-3">
-            <div className="mx-auto max-w-[1360px] px-4 text-sm font-medium text-goi-danger sm:px-6">
-              {loadError}
-            </div>
-          </section>
-        )}
-
-        <section className="bg-goi-surface py-12 sm:py-14">
+        <section className="bg-white py-14 sm:py-16">
           <div className="mx-auto max-w-[1360px] px-4 sm:px-6">
-            <div className="mb-7 flex items-end justify-between gap-5">
+            <div className="flex items-end justify-between gap-5">
               <div>
-                <p className="text-sm font-semibold uppercase tracking-wide text-goi-blue">
-                  Catégories
+                <p className="text-sm font-bold uppercase tracking-[0.12em] text-goi-blue">
+                  Catalogue
                 </p>
 
-                <h2 className="mt-2 text-2xl font-extrabold text-goi-navy sm:text-3xl">
-                  Explorez notre catalogue
-                </h2>
-
-                <p className="mt-2 max-w-2xl text-goi-muted">
-                  Accédez rapidement aux familles de produits
-                  disponibles chez GOI.
-                </p>
-              </div>
-
-              <Link
-                to="/produits"
-                className="hidden items-center gap-2 text-sm font-semibold text-goi-blue hover:underline sm:flex"
-              >
-                Tout le catalogue
-                <ArrowRight size={17} />
-              </Link>
-            </div>
-
-            {isLoading ? (
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                {Array.from({ length: 4 }).map((_, index) => (
-                  <div
-                    key={index}
-                    className="h-44 animate-pulse rounded-2xl bg-white"
-                  />
-                ))}
-              </div>
-            ) : (
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                {categories.map((category) => (
-                  <CategoryCard
-                    key={category.id}
-                    {...category}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-        </section>
-
-        <section className="bg-white py-12 sm:py-14">
-          <div className="mx-auto max-w-[1360px] px-4 sm:px-6">
-            <div className="mb-7 flex items-end justify-between gap-5">
-              <div>
-                <p className="text-sm font-semibold uppercase tracking-wide text-goi-blue">
-                  Sélection GOI
-                </p>
-
-                <h2 className="mt-2 text-2xl font-extrabold text-goi-navy sm:text-3xl">
+                <h2 className="mt-2 text-3xl font-extrabold text-goi-navy">
                   Produits à découvrir
                 </h2>
               </div>
 
               <Link
                 to="/produits"
-                className="hidden items-center gap-2 text-sm font-semibold text-goi-blue hover:underline sm:flex"
+                className="hidden items-center gap-2 font-bold text-goi-blue sm:flex"
               >
-                Voir tous les produits
+                Tout voir
                 <ArrowRight size={17} />
               </Link>
             </div>
 
             {isLoading ? (
-              <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-                {Array.from({ length: 4 }).map((_, index) => (
+              <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+                {Array.from({
+                  length: 4,
+                }).map((_, index) => (
                   <div
                     key={index}
                     className="h-[370px] animate-pulse rounded-2xl bg-goi-surface"
@@ -270,27 +289,312 @@ export function HomePage() {
                 ))}
               </div>
             ) : products.length > 0 ? (
-              <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-                {products.map((product) => (
-                  <ProductCard
-                    key={product.id}
-                    product={product}
-                  />
-                ))}
+              <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+                {products.map(
+                  (product) => (
+                    <ProductCard
+                      key={product.id}
+                      product={product}
+                    />
+                  ),
+                )}
               </div>
             ) : (
-              <div className="rounded-2xl border border-slate-200 bg-goi-surface p-8 text-center">
-                <p className="font-semibold text-goi-navy">
-                  Aucun produit mis en avant pour le moment.
-                </p>
+              <div className="mt-8 rounded-2xl bg-goi-surface p-8 text-center text-goi-muted">
+                Aucun produit publié pour le moment.
               </div>
             )}
           </div>
         </section>
 
-        <WhyGOI />
-        <PromoBanner />
-        <B2BSection />
+        {home.services.length > 0 && (
+          <section className="bg-goi-surface py-14 sm:py-16">
+            <div className="mx-auto max-w-[1360px] px-4 sm:px-6">
+              <div className="flex items-end justify-between gap-5">
+                <div>
+                  <p className="text-sm font-bold uppercase tracking-[0.12em] text-goi-blue">
+                    Nos services
+                  </p>
+
+                  <h2 className="mt-2 text-3xl font-extrabold text-goi-navy">
+                    GOI vous accompagne aussi sur le terrain
+                  </h2>
+                </div>
+
+                <Link
+                  to="/services"
+                  className="hidden items-center gap-2 font-bold text-goi-blue sm:flex"
+                >
+                  Tous les services
+                  <ArrowRight
+                    size={17}
+                  />
+                </Link>
+              </div>
+
+              <div className="mt-8 grid gap-5 md:grid-cols-2 lg:grid-cols-4">
+                {home.services.map(
+                  (service) => (
+                    <article
+                      key={service.id}
+                      className="overflow-hidden rounded-2xl border border-[#d8ded8] bg-white"
+                    >
+                      {service.coverMedia
+                        ?.secureUrl && (
+                        <img
+                          src={
+                            service
+                              .coverMedia
+                              .secureUrl
+                          }
+                          alt={
+                            service
+                              .coverMedia
+                              .alt ??
+                            service.name
+                          }
+                          loading="lazy"
+                          className="aspect-[16/10] w-full object-cover"
+                        />
+                      )}
+
+                      <div className="p-5">
+                        <h3 className="text-lg font-bold text-goi-navy">
+                          {service.name}
+                        </h3>
+
+                        {service.shortDescription && (
+                          <p className="mt-2 text-sm leading-6 text-goi-muted">
+                            {
+                              service.shortDescription
+                            }
+                          </p>
+                        )}
+                      </div>
+                    </article>
+                  ),
+                )}
+              </div>
+            </div>
+          </section>
+        )}
+
+        <section className="bg-goi-navy py-14 text-white sm:py-16">
+          <div className="mx-auto max-w-[1360px] px-4 sm:px-6">
+            <div className="max-w-2xl">
+              <p className="text-sm font-bold uppercase tracking-[0.12em] text-goi-gold">
+                Pourquoi GOI
+              </p>
+
+              <h2 className="mt-2 text-3xl font-extrabold">
+                Un parcours clair et adapté à votre besoin
+              </h2>
+            </div>
+
+            <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {trustItems.map(
+                (item) => (
+                  <article
+                    key={item.id}
+                    className="rounded-2xl border border-white/10 bg-white/5 p-5"
+                  >
+                    <ShieldCheck
+                      size={24}
+                      className="text-goi-gold"
+                    />
+
+                    <h3 className="mt-4 font-bold">
+                      {item.title}
+                    </h3>
+
+                    {item.description && (
+                      <p className="mt-2 text-sm leading-6 text-white/70">
+                        {
+                          item.description
+                        }
+                      </p>
+                    )}
+                  </article>
+                ),
+              )}
+            </div>
+          </div>
+        </section>
+
+        {home.realizations.length > 0 && (
+          <section className="bg-white py-14 sm:py-16">
+            <div className="mx-auto max-w-[1360px] px-4 sm:px-6">
+              <div className="flex items-end justify-between gap-5">
+                <div>
+                  <p className="text-sm font-bold uppercase tracking-[0.12em] text-goi-blue">
+                    Nos Réalisations
+                  </p>
+
+                  <h2 className="mt-2 text-3xl font-extrabold text-goi-navy">
+                    Des projets réalisés sur le terrain
+                  </h2>
+                </div>
+
+                <Link
+                  to="/realisations"
+                  className="hidden items-center gap-2 font-bold text-goi-blue sm:flex"
+                >
+                  Voir les réalisations
+                  <ArrowRight
+                    size={17}
+                  />
+                </Link>
+              </div>
+
+              <div className="mt-8 grid gap-5 md:grid-cols-2 lg:grid-cols-4">
+                {home.realizations.map(
+                  (realization) => (
+                    <article
+                      key={
+                        realization.id
+                      }
+                      className="overflow-hidden rounded-2xl border border-[#d8ded8] bg-goi-surface"
+                    >
+                      {realization
+                        .coverMedia
+                        ?.secureUrl && (
+                        <img
+                          src={
+                            realization
+                              .coverMedia
+                              .secureUrl
+                          }
+                          alt={
+                            realization
+                              .coverMedia
+                              .alt ??
+                            realization.title
+                          }
+                          loading="lazy"
+                          className="aspect-[4/3] w-full object-cover"
+                        />
+                      )}
+
+                      <div className="p-5">
+                        {realization.category
+                          ?.name && (
+                          <p className="text-xs font-bold uppercase tracking-wide text-goi-blue">
+                            {
+                              realization
+                                .category
+                                .name
+                            }
+                          </p>
+                        )}
+
+                        <h3 className="mt-1 font-bold text-goi-navy">
+                          {
+                            realization.title
+                          }
+                        </h3>
+
+                        {realization.location && (
+                          <p className="mt-2 flex items-center gap-1.5 text-sm text-goi-muted">
+                            <MapPin
+                              size={15}
+                            />
+                            {
+                              realization.location
+                            }
+                          </p>
+                        )}
+                      </div>
+                    </article>
+                  ),
+                )}
+              </div>
+            </div>
+          </section>
+        )}
+
+        {offers.length > 0 && (
+          <section className="bg-goi-ivory py-14 sm:py-16">
+            <div className="mx-auto max-w-[1360px] px-4 sm:px-6">
+              <p className="text-sm font-bold uppercase tracking-[0.12em] text-goi-orange">
+                Offres du moment
+              </p>
+
+              <h2 className="mt-2 text-3xl font-extrabold text-goi-navy">
+                Promotions actives
+              </h2>
+
+              <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+                {offers.map(
+                  (product) => (
+                    <ProductCard
+                      key={product.id}
+                      product={product}
+                    />
+                  ),
+                )}
+              </div>
+            </div>
+          </section>
+        )}
+
+        <section className="bg-white py-14 sm:py-16">
+          <div className="mx-auto grid max-w-[1360px] gap-8 px-4 sm:px-6 lg:grid-cols-[1fr_0.8fr] lg:items-center">
+            <div>
+              <p className="text-sm font-bold uppercase tracking-[0.12em] text-goi-blue">
+                À propos de GOI
+              </p>
+
+              <h2 className="mt-2 text-3xl font-extrabold text-goi-navy">
+                Vente d’équipements et installation à Ouagadougou
+              </h2>
+
+              <p className="mt-4 max-w-3xl leading-7 text-goi-muted">
+                Grossiste Ouaga International
+                est spécialisé dans la vente
+                d’équipements solaires,
+                électriques, électroniques et
+                électroménagers. GOI réalise
+                également des installations
+                solaires et électriques afin
+                d’accompagner ses clients
+                selon leurs besoins.
+              </p>
+
+              <Link
+                to="/a-propos"
+                className="mt-6 inline-flex min-h-11 items-center gap-2 font-bold text-goi-blue"
+              >
+                Découvrir GOI
+                <ArrowRight size={17} />
+              </Link>
+            </div>
+
+            <div className="rounded-2xl bg-goi-surface p-7 sm:p-8">
+              <MapPin
+                size={30}
+                className="text-goi-blue"
+              />
+
+              <h3 className="mt-4 text-xl font-bold text-goi-navy">
+                Implanté à Ouagadougou
+              </h3>
+
+              <p className="mt-2 text-sm leading-6 text-goi-muted">
+                Pour un besoin produit, une
+                installation ou une demande
+                de devis, contactez
+                directement GOI.
+              </p>
+
+              <Link
+                to="/contact"
+                className="mt-5 inline-flex min-h-11 items-center rounded-xl bg-goi-navy px-5 font-bold text-white"
+              >
+                Nous contacter
+              </Link>
+            </div>
+          </div>
+        </section>
       </main>
 
       <SiteFooter />
