@@ -4,8 +4,12 @@ import {
   Boxes,
   CircleDollarSign,
   Clock3,
+  Images,
+  MessageSquareText,
   PackageCheck,
+  PanelsTopLeft,
   ReceiptText,
+  Settings2,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -293,6 +297,83 @@ export function AdminDashboardPanel({
                 </Link>
               ),
             )}
+      </section>
+
+      <section className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6">
+        <div>
+          <h2 className="font-bold text-slate-950">
+            Gestion du site
+          </h2>
+
+          <p className="mt-1 text-sm text-slate-500">
+            Accès rapide aux contenus et paramètres du site public.
+          </p>
+        </div>
+
+        <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {[
+            {
+              label: 'Contenu du site',
+              description:
+                'Accueil, services, réalisations et À propos',
+              href: '/contenu',
+              icon: PanelsTopLeft,
+            },
+            {
+              label: 'Messages',
+              description:
+                'Demandes reçues depuis le formulaire de contact',
+              href: '/messages',
+              icon: MessageSquareText,
+            },
+            {
+              label: 'Médias',
+              description:
+                'Images, vidéos et documents',
+              href: '/medias',
+              icon: Images,
+            },
+            {
+              label: 'Paramètres',
+              description:
+                'Entreprise, coordonnées et identité visuelle',
+              href: '/parametres',
+              icon: Settings2,
+            },
+          ].map(
+            ({
+              label,
+              description,
+              href,
+              icon: Icon,
+            }) => (
+              <Link
+                key={href}
+                to={href}
+                className="group flex min-h-32 flex-col rounded-xl border border-slate-200 p-4 transition hover:border-blue-200 hover:bg-blue-50/40"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex size-10 items-center justify-center rounded-xl bg-slate-100 text-slate-700 group-hover:bg-blue-100 group-hover:text-blue-700">
+                    <Icon size={19} />
+                  </div>
+
+                  <ArrowRight
+                    size={16}
+                    className="text-slate-300 group-hover:text-blue-600"
+                  />
+                </div>
+
+                <p className="mt-4 font-bold text-slate-900">
+                  {label}
+                </p>
+
+                <p className="mt-1 text-xs leading-5 text-slate-500">
+                  {description}
+                </p>
+              </Link>
+            ),
+          )}
+        </div>
       </section>
 
       <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white">

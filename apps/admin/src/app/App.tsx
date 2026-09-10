@@ -23,6 +23,9 @@ import { MediaAdminPanel } from '../components/MediaAdminPanel';
 import { OrdersAdminPanel } from '../components/OrdersAdminPanel';
 import { PaymentAccountsAdminPanel } from '../components/PaymentAccountsAdminPanel';
 import { PaymentsAdminPanel } from '../components/PaymentsAdminPanel';
+import { CompanySettingsAdminPanel } from '../components/CompanySettingsAdminPanel';
+import { ContactMessagesAdminPanel } from '../components/ContactMessagesAdminPanel';
+import { SiteContentAdminPanel } from '../components/SiteContentAdminPanel';
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ??
@@ -373,6 +376,27 @@ export function App() {
                   handleUnauthorized
                 }
               />
+            }
+          />
+
+          <Route
+            path="/contenu"
+            element={
+              <SiteContentAdminPanel />
+            }
+          />
+
+          <Route
+            path="/messages"
+            element={
+              <ContactMessagesAdminPanel />
+            }
+          />
+
+          <Route
+            path="/parametres"
+            element={
+              <CompanySettingsAdminPanel />
             }
           />
 

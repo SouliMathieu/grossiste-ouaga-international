@@ -5,6 +5,9 @@ import {
   Images,
   LogOut,
   Menu,
+  MessageSquareText,
+  PanelsTopLeft,
+  Building2,
   ReceiptText,
   Settings2,
   WalletCards,
@@ -64,6 +67,21 @@ const navigation = [
     href: '/medias',
     icon: Images,
   },
+  {
+    label: 'Contenu du site',
+    href: '/contenu',
+    icon: PanelsTopLeft,
+  },
+  {
+    label: 'Messages',
+    href: '/messages',
+    icon: MessageSquareText,
+  },
+  {
+    label: 'Paramètres',
+    href: '/parametres',
+    icon: Building2,
+  },
 ];
 
 const pageMeta: Record<
@@ -102,6 +120,21 @@ const pageMeta: Record<
     title: 'Bibliothèque média',
     description:
       'Ajoutez et organisez les images, vidéos et documents du site.',
+  },
+  '/contenu': {
+    title: 'Contenu du site',
+    description:
+      'Gérez l’accueil, les services, les réalisations et la page À propos.',
+  },
+  '/messages': {
+    title: 'Messages',
+    description:
+      'Consultez et traitez les demandes envoyées depuis le site.',
+  },
+  '/parametres': {
+    title: 'Paramètres entreprise',
+    description:
+      'Gérez les coordonnées, le logo, les réseaux sociaux et la localisation.',
   },
 };
 
