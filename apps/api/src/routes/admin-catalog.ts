@@ -17,6 +17,24 @@ const nullableText = z
   .optional()
   .transform((value) => value || null);
 
+const categorySchema = z.object({
+  name: z.string().trim().min(2).max(120),
+  description: nullableText,
+  imageUrl: nullableText,
+  sortOrder: z.number().int().min(0).default(0),
+  active: z.boolean().default(true),
+});
+
+const categoryUpdateSchema = categorySchema
+  .partial()
+  .refine(
+    (data) => Object.keys(data).length > 0,
+    {
+      message:
+        'Au moins un champ doit être modifié.',
+    },
+  );
+
 const productSchema = z.object({
   categoryId: z.number().int().positive(),
   name: z.string().trim().min(2).max(191),
@@ -195,6 +213,81 @@ function isUniqueConstraintError(error: unknown) {
     'code' in error &&
     (error as { code?: unknown }).code === 'P2002'
   );
+}
+
+async function buildAvailableCategorySlug(
+  name: string,
+  excludedId?: number,
+) {
+  const base =
+    (slugify(name) || 'categorie').slice(
+      0,
+      130,
+    );
+
+  let suffix = 1;
+
+  while (true) {
+    const suffixText =
+      suffix === 1 ? '' : `-${suffix}`;
+
+    const candidate = `${base.slice(
+      0,
+      140 - suffixText.length,
+    )}${suffixText}`;
+
+    const existing =
+      await prisma.category.findFirst({
+        where: {
+          slug: candidate,
+          ...(excludedId
+            ? {
+                id: {
+                  not: excludedId,
+                },
+              }
+            : {}),
+        },
+        select: {
+          id: true,
+        },
+      });
+
+    if (!existing) {
+      return candidate;
+    }
+
+    suffix += 1;
+  }
+}
+
+function serializeCategory(category: {
+  id: number;
+  name: string;
+  slug: string;
+  description: string | null;
+  imageUrl: string | null;
+  sortOrder: number;
+  active: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+  _count?: {
+    products: number;
+  };
+}) {
+  return {
+    id: category.id,
+    name: category.name,
+    slug: category.slug,
+    description: category.description,
+    imageUrl: category.imageUrl,
+    sortOrder: category.sortOrder,
+    active: category.active,
+    productCount:
+      category._count?.products ?? 0,
+    createdAt: category.createdAt,
+    updatedAt: category.updatedAt,
+  };
 }
 
 function serializeProduct(product: {
@@ -451,6 +544,278 @@ function buildProductMediaRows(
         ]),
   ];
 }
+
+adminCatalogRouter.get(
+  '/categories',
+  async (_request, response) => {
+    try {
+      const categories =
+        await prisma.category.findMany({
+          orderBy: [
+            {
+              sortOrder: 'asc',
+            },
+            {
+              name: 'asc',
+            },
+          ],
+          include: {
+            _count: {
+              select: {
+                products: true,
+              },
+            },
+          },
+        });
+
+      return response.json({
+        data: categories.map(
+          serializeCategory,
+        ),
+      });
+    } catch (error) {
+      console.error(
+        'Unable to list product categories',
+        error,
+      );
+
+      return response.status(500).json({
+        message:
+          'Impossible de charger les catégories.',
+      });
+    }
+  },
+);
+
+adminCatalogRouter.post(
+  '/categories',
+  async (request, response) => {
+    const parsed =
+      categorySchema.safeParse(request.body);
+
+    if (!parsed.success) {
+      return response.status(400).json({
+        message:
+          'Les informations de la catégorie sont invalides.',
+      });
+    }
+
+    try {
+      const slug =
+        await buildAvailableCategorySlug(
+          parsed.data.name,
+        );
+
+      const category =
+        await prisma.category.create({
+          data: {
+            ...parsed.data,
+            slug,
+          },
+          include: {
+            _count: {
+              select: {
+                products: true,
+              },
+            },
+          },
+        });
+
+      return response.status(201).json({
+        data: serializeCategory(category),
+      });
+    } catch (error) {
+      console.error(
+        'Unable to create product category',
+        error,
+      );
+
+      return response.status(500).json({
+        message:
+          'Impossible de créer la catégorie.',
+      });
+    }
+  },
+);
+
+adminCatalogRouter.patch(
+  '/categories/:id',
+  async (request, response) => {
+    const id = z.coerce
+      .number()
+      .int()
+      .positive()
+      .safeParse(request.params.id);
+
+    if (!id.success) {
+      return response.status(400).json({
+        message:
+          'Identifiant de catégorie invalide.',
+      });
+    }
+
+    const parsed =
+      categoryUpdateSchema.safeParse(
+        request.body,
+      );
+
+    if (!parsed.success) {
+      return response.status(400).json({
+        message:
+          'Les informations de la catégorie sont invalides.',
+      });
+    }
+
+    try {
+      const existing =
+        await prisma.category.findUnique({
+          where: {
+            id: id.data,
+          },
+        });
+
+      if (!existing) {
+        return response.status(404).json({
+          message:
+            'Catégorie introuvable.',
+        });
+      }
+
+      const slug =
+        parsed.data.name &&
+        parsed.data.name !== existing.name
+          ? await buildAvailableCategorySlug(
+              parsed.data.name,
+              existing.id,
+            )
+          : undefined;
+
+      const category =
+        await prisma.category.update({
+          where: {
+            id: existing.id,
+          },
+          data: {
+            ...(parsed.data.name !== undefined
+              ? { name: parsed.data.name }
+              : {}),
+            ...(parsed.data.description !== undefined
+              ? {
+                  description:
+                    parsed.data.description,
+                }
+              : {}),
+            ...(parsed.data.imageUrl !== undefined
+              ? { imageUrl: parsed.data.imageUrl }
+              : {}),
+            ...(parsed.data.sortOrder !== undefined
+              ? {
+                  sortOrder:
+                    parsed.data.sortOrder,
+                }
+              : {}),
+            ...(parsed.data.active !== undefined
+              ? { active: parsed.data.active }
+              : {}),
+            ...(slug !== undefined
+              ? { slug }
+              : {}),
+          },
+          include: {
+            _count: {
+              select: {
+                products: true,
+              },
+            },
+          },
+        });
+
+      return response.json({
+        data: serializeCategory(category),
+      });
+    } catch (error) {
+      console.error(
+        'Unable to update product category',
+        error,
+      );
+
+      return response.status(500).json({
+        message:
+          'Impossible de modifier la catégorie.',
+      });
+    }
+  },
+);
+
+adminCatalogRouter.delete(
+  '/categories/:id',
+  async (request, response) => {
+    const id = z.coerce
+      .number()
+      .int()
+      .positive()
+      .safeParse(request.params.id);
+
+    if (!id.success) {
+      return response.status(400).json({
+        message:
+          'Identifiant de catégorie invalide.',
+      });
+    }
+
+    try {
+      const category =
+        await prisma.category.findUnique({
+          where: {
+            id: id.data,
+          },
+          include: {
+            _count: {
+              select: {
+                products: true,
+              },
+            },
+          },
+        });
+
+      if (!category) {
+        return response.status(404).json({
+          message:
+            'Catégorie introuvable.',
+        });
+      }
+
+      if (category._count.products > 0) {
+        return response.status(409).json({
+          message:
+            'Cette catégorie contient des produits. Désactivez-la ou déplacez d’abord les produits vers une autre catégorie.',
+        });
+      }
+
+      await prisma.category.delete({
+        where: {
+          id: category.id,
+        },
+      });
+
+      return response.json({
+        data: {
+          id: category.id,
+        },
+      });
+    } catch (error) {
+      console.error(
+        'Unable to delete product category',
+        error,
+      );
+
+      return response.status(500).json({
+        message:
+          'Impossible de supprimer la catégorie.',
+      });
+    }
+  },
+);
 
 adminCatalogRouter.get(
   '/products',

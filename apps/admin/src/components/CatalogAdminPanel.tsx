@@ -12,6 +12,9 @@ import {
   type FormEvent,
 } from 'react';
 import { Link } from 'react-router-dom';
+import {
+  ProductCategoriesPanel,
+} from './ProductCategoriesPanel';
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:4000';
@@ -20,6 +23,11 @@ type Category = {
   id: number;
   name: string;
   slug: string;
+  description: string | null;
+  imageUrl: string | null;
+  sortOrder: number;
+  active: boolean;
+  productCount: number;
 };
 
 type ProductMediaAsset = {
@@ -181,6 +189,23 @@ export function CatalogAdminPanel() {
   const [editingId, setEditingId] =
     useState<number | null>(null);
 
+  const [isFormOpen, setIsFormOpen] =
+    useState(false);
+
+  const [catalogView, setCatalogView] =
+    useState<'PRODUCTS' | 'CATEGORIES'>(
+      'PRODUCTS',
+    );
+
+  const [searchQuery, setSearchQuery] =
+    useState('');
+
+  const [categoryFilter, setCategoryFilter] =
+    useState('ALL');
+
+  const [statusFilter, setStatusFilter] =
+    useState('ALL');
+
   const [isLoading, setIsLoading] =
     useState(true);
 
@@ -203,7 +228,10 @@ export function CatalogAdminPanel() {
         productsResponse,
       ] = await Promise.all([
         adminFetch(
-          `${API_BASE_URL}/api/catalog/categories`,
+          `${API_BASE_URL}/api/admin/catalog/categories`,
+          {
+            credentials: 'include',
+          },
         ),
         adminFetch(
           `${API_BASE_URL}/api/admin/catalog/products`,
@@ -246,7 +274,10 @@ export function CatalogAdminPanel() {
         categoryId:
           current.categoryId ||
           String(
-            categoriesPayload.data?.[0]?.id ?? '',
+            categoriesPayload.data?.find(
+              (category) =>
+                category.active,
+            )?.id ?? '',
           ),
       }));
     } catch (caught) {
@@ -263,6 +294,41 @@ export function CatalogAdminPanel() {
   useEffect(() => {
     void loadData();
   }, []);
+
+  const normalizedSearch =
+    searchQuery.trim().toLocaleLowerCase('fr');
+
+  const filteredProducts = products.filter(
+    (product) => {
+      const matchesSearch =
+        normalizedSearch === '' ||
+        [
+          product.name,
+          product.sku,
+          product.brand ?? '',
+          product.category.name,
+        ].some((value) =>
+          value
+            .toLocaleLowerCase('fr')
+            .includes(normalizedSearch),
+        );
+
+      const matchesCategory =
+        categoryFilter === 'ALL' ||
+        String(product.categoryId) ===
+          categoryFilter;
+
+      const matchesStatus =
+        statusFilter === 'ALL' ||
+        product.status === statusFilter;
+
+      return (
+        matchesSearch &&
+        matchesCategory &&
+        matchesStatus
+      );
+    },
+  );
 
   function updateField<
     K extends keyof ProductForm,
@@ -284,7 +350,30 @@ export function CatalogAdminPanel() {
     setForm({
       ...emptyForm,
       categoryId: String(
-        categories[0]?.id ?? '',
+        categories.find(
+          (category) => category.active,
+        )?.id ?? '',
+      ),
+    });
+
+    setIsFormOpen(true);
+  }
+
+  function closeProductForm() {
+    if (isSaving) {
+      return;
+    }
+
+    setIsFormOpen(false);
+    setEditingId(null);
+    setError(null);
+
+    setForm({
+      ...emptyForm,
+      categoryId: String(
+        categories.find(
+          (category) => category.active,
+        )?.id ?? '',
       ),
     });
   }
@@ -344,12 +433,7 @@ export function CatalogAdminPanel() {
       keywords: product.keywords ?? '',
     });
 
-    document
-      .getElementById('catalog-form')
-      ?.scrollIntoView({
-        behavior: 'smooth',
-        block: 'start',
-      });
+    setIsFormOpen(true);
   }
 
   async function handleSubmit(
@@ -535,7 +619,18 @@ export function CatalogAdminPanel() {
           : 'Produit créé.',
       );
 
-      startCreate();
+      setIsFormOpen(false);
+      setEditingId(null);
+
+      setForm({
+        ...emptyForm,
+        categoryId: String(
+          categories.find(
+          (category) => category.active,
+        )?.id ?? '',
+        ),
+      });
+
       await loadData();
     } catch (caught) {
       setError(
@@ -598,16 +693,14 @@ export function CatalogAdminPanel() {
       id="catalog-admin"
       className="space-y-6"
     >
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h2 className="text-xl font-bold text-slate-950">
-            Produits
-          </h2>
+      <div>
+        <h2 className="text-2xl font-bold text-slate-950">
+          Catalogue
+        </h2>
 
-          <p className="mt-1 text-sm text-slate-500">
-            Créez, modifiez, publiez ou archivez les références de la boutique.
-          </p>
-        </div>
+        <p className="mt-1 text-sm text-slate-500">
+          Gérez les produits et les catégories de la boutique GOI.
+        </p>
       </div>
 
       {error && (
@@ -625,14 +718,64 @@ export function CatalogAdminPanel() {
         </div>
       )}
 
-      <form
-        id="catalog-form"
-        onSubmit={handleSubmit}
-        className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6"
-      >
+      <div className="inline-flex rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
+        <button
+          type="button"
+          onClick={() =>
+            setCatalogView('PRODUCTS')
+          }
+          className={`min-h-10 rounded-lg px-5 text-sm font-semibold transition ${
+            catalogView === 'PRODUCTS'
+              ? 'bg-[#0E3B2E] text-white'
+              : 'text-slate-600 hover:bg-slate-50'
+          }`}
+        >
+          Produits
+        </button>
+
+        <button
+          type="button"
+          onClick={() =>
+            setCatalogView('CATEGORIES')
+          }
+          className={`min-h-10 rounded-lg px-5 text-sm font-semibold transition ${
+            catalogView === 'CATEGORIES'
+              ? 'bg-[#0E3B2E] text-white'
+              : 'text-slate-600 hover:bg-slate-50'
+          }`}
+        >
+          Catégories
+        </button>
+      </div>
+
+      {isFormOpen && (
+        <div
+          className="fixed inset-0 z-50 flex justify-end bg-slate-950/40"
+          onMouseDown={(event) => {
+            if (
+              event.target === event.currentTarget
+            ) {
+              closeProductForm();
+            }
+          }}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="catalog-form-title"
+            className="h-full w-full max-w-5xl overflow-y-auto bg-[#F4F6F2] shadow-2xl"
+          >
+            <form
+              id="catalog-form"
+              onSubmit={handleSubmit}
+              className="min-h-full p-5 sm:p-6 lg:p-8"
+            >
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h3 className="text-xl font-bold text-slate-900">
+            <h3
+              id="catalog-form-title"
+              className="text-xl font-bold text-slate-900"
+            >
               {editingId
                 ? 'Modifier le produit'
                 : 'Nouveau produit'}
@@ -643,19 +786,52 @@ export function CatalogAdminPanel() {
             </p>
           </div>
 
-          {editingId && (
-            <button
-              type="button"
-              onClick={startCreate}
-              className="min-h-10 rounded-lg border border-slate-200 px-4 text-sm font-semibold"
-            >
-              Nouveau produit
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={closeProductForm}
+            disabled={isSaving}
+            className="min-h-10 rounded-lg border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+          >
+            Fermer
+          </button>
         </div>
 
-        <div className="mt-6 grid gap-5 md:grid-cols-2">
-          <label>
+        {error && (
+          <div
+            role="alert"
+            className="mt-5 rounded-lg border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-700"
+          >
+            {error}
+          </div>
+        )}
+
+        <div className="mt-6 space-y-5">
+
+          <section
+            aria-labelledby="product-section-1"
+            className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6"
+          >
+            <div className="mb-5 flex gap-3 border-b border-slate-100 pb-4">
+              <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[#0E3B2E] text-xs font-bold text-white">
+                1
+              </div>
+
+              <div>
+                <h4
+                  id="product-section-1"
+                  className="font-bold text-slate-950"
+                >
+                  Informations essentielles
+                </h4>
+
+                <p className="mt-1 text-sm text-slate-500">
+                  Identifiez clairement le produit et sa catégorie.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid gap-5 md:grid-cols-2">
+<label>
             <span className="text-sm font-semibold">
               Catégorie *
             </span>
@@ -671,7 +847,14 @@ export function CatalogAdminPanel() {
               }
               className="mt-2 h-12 w-full rounded-lg border border-slate-200 px-3"
             >
-              {categories.map((category) => (
+              {categories
+              .filter(
+                (category) =>
+                  category.active ||
+                  String(category.id) ===
+                    form.categoryId,
+              )
+              .map((category) => (
                 <option
                   key={category.id}
                   value={category.id}
@@ -718,7 +901,99 @@ export function CatalogAdminPanel() {
             />
           </label>
 
-          <label className="md:col-span-2">
+
+            </div>
+          </section>
+
+          <section
+            aria-labelledby="product-section-2"
+            className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6"
+          >
+            <div className="mb-5 flex gap-3 border-b border-slate-100 pb-4">
+              <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[#0E3B2E] text-xs font-bold text-white">
+                2
+              </div>
+
+              <div>
+                <h4
+                  id="product-section-2"
+                  className="font-bold text-slate-950"
+                >
+                  Photos et documents
+                </h4>
+
+                <p className="mt-1 text-sm text-slate-500">
+                  Choisissez l’image principale, la galerie et la fiche technique.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid gap-5 md:grid-cols-2">
+<ProductMediaFields
+            mainMediaId={
+              form.mainMediaId
+            }
+            galleryMediaIds={
+              form.galleryMediaIds
+            }
+            datasheetMediaId={
+              form.datasheetMediaId
+            }
+            onMainMediaChange={(
+              mediaId,
+            ) =>
+              updateField(
+                'mainMediaId',
+                mediaId,
+              )
+            }
+            onGalleryMediaChange={(
+              mediaIds,
+            ) =>
+              updateField(
+                'galleryMediaIds',
+                mediaIds,
+              )
+            }
+            onDatasheetMediaChange={(
+              mediaId,
+            ) =>
+              updateField(
+                'datasheetMediaId',
+                mediaId,
+              )
+            }
+          />
+
+
+            </div>
+          </section>
+
+          <section
+            aria-labelledby="product-section-3"
+            className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6"
+          >
+            <div className="mb-5 flex gap-3 border-b border-slate-100 pb-4">
+              <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[#0E3B2E] text-xs font-bold text-white">
+                3
+              </div>
+
+              <div>
+                <h4
+                  id="product-section-3"
+                  className="font-bold text-slate-950"
+                >
+                  Description
+                </h4>
+
+                <p className="mt-1 text-sm text-slate-500">
+                  Présentez le produit avec des informations utiles aux clients.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid gap-5 md:grid-cols-2">
+<label className="md:col-span-2">
             <span className="text-sm font-semibold">
               Description courte
             </span>
@@ -753,7 +1028,90 @@ export function CatalogAdminPanel() {
             />
           </label>
 
-          <label>
+          <label className="md:col-span-2">
+            <span className="text-sm font-semibold">
+              Mots-clés
+            </span>
+
+            <input
+              value={form.keywords}
+              onChange={(event) =>
+                updateField(
+                  'keywords',
+                  event.target.value,
+                )
+              }
+              placeholder="solaire batterie énergie..."
+              className="mt-2 h-12 w-full rounded-lg border border-slate-200 px-4"
+            />
+          </label>
+
+            </div>
+          </section>
+
+          <section
+            aria-labelledby="product-section-4"
+            className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6"
+          >
+            <div className="mb-5 flex gap-3 border-b border-slate-100 pb-4">
+              <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[#0E3B2E] text-xs font-bold text-white">
+                4
+              </div>
+
+              <div>
+                <h4
+                  id="product-section-4"
+                  className="font-bold text-slate-950"
+                >
+                  Caractéristiques
+                </h4>
+
+                <p className="mt-1 text-sm text-slate-500">
+                  Ajoutez librement les caractéristiques techniques du produit.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid gap-5 md:grid-cols-2">
+<ProductAttributesFields
+            value={form.attributes}
+            onChange={(attributes) =>
+              updateField(
+                'attributes',
+                attributes,
+              )
+            }
+          />
+
+
+            </div>
+          </section>
+
+          <section
+            aria-labelledby="product-section-5"
+            className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6"
+          >
+            <div className="mb-5 flex gap-3 border-b border-slate-100 pb-4">
+              <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[#0E3B2E] text-xs font-bold text-white">
+                5
+              </div>
+
+              <div>
+                <h4
+                  id="product-section-5"
+                  className="font-bold text-slate-950"
+                >
+                  Vente et stock
+                </h4>
+
+                <p className="mt-1 text-sm text-slate-500">
+                  Configurez le prix, le conditionnement et la disponibilité.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid gap-5 md:grid-cols-2">
+<label>
             <span className="text-sm font-semibold">
               Prix FCFA
             </span>
@@ -811,78 +1169,6 @@ export function CatalogAdminPanel() {
               </span>
             </span>
           </label>
-
-          {!form.priceOnRequest && (
-            <div className="md:col-span-2 rounded-xl border border-amber-200 bg-amber-50/50 p-4">
-              <div>
-                <h4 className="font-bold text-slate-900">
-                  Promotion
-                </h4>
-                <p className="mt-1 text-sm text-slate-500">
-                  Laissez vide si aucune promotion n’est prévue.
-                </p>
-              </div>
-
-              <div className="mt-4 grid gap-4 md:grid-cols-3">
-                <label>
-                  <span className="text-sm font-semibold">
-                    Prix promotionnel
-                  </span>
-
-                  <input
-                    type="number"
-                    min="0"
-                    step="1"
-                    value={form.promoPrice}
-                    onChange={(event) =>
-                      updateField(
-                        'promoPrice',
-                        event.target.value,
-                      )
-                    }
-                    placeholder="Ex. 75000"
-                    className="mt-2 h-12 w-full rounded-lg border border-slate-200 bg-white px-4"
-                  />
-                </label>
-
-                <label>
-                  <span className="text-sm font-semibold">
-                    Début
-                  </span>
-
-                  <input
-                    type="date"
-                    value={form.promoStartAt}
-                    onChange={(event) =>
-                      updateField(
-                        'promoStartAt',
-                        event.target.value,
-                      )
-                    }
-                    className="mt-2 h-12 w-full rounded-lg border border-slate-200 bg-white px-4"
-                  />
-                </label>
-
-                <label>
-                  <span className="text-sm font-semibold">
-                    Fin
-                  </span>
-
-                  <input
-                    type="date"
-                    value={form.promoEndAt}
-                    onChange={(event) =>
-                      updateField(
-                        'promoEndAt',
-                        event.target.value,
-                      )
-                    }
-                    className="mt-2 h-12 w-full rounded-lg border border-slate-200 bg-white px-4"
-                  />
-                </label>
-              </div>
-            </div>
-          )}
 
           <label>
             <span className="text-sm font-semibold">
@@ -992,7 +1278,135 @@ export function CatalogAdminPanel() {
             />
           </label>
 
-          <label>
+
+            </div>
+          </section>
+
+          <section
+            aria-labelledby="product-section-6"
+            className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6"
+          >
+            <div className="mb-5 flex gap-3 border-b border-slate-100 pb-4">
+              <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[#0E3B2E] text-xs font-bold text-white">
+                6
+              </div>
+
+              <div>
+                <h4
+                  id="product-section-6"
+                  className="font-bold text-slate-950"
+                >
+                  Promotion
+                </h4>
+
+                <p className="mt-1 text-sm text-slate-500">
+                  Configurez une remise temporaire uniquement si nécessaire.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid gap-5 md:grid-cols-2">
+{!form.priceOnRequest && (
+            <div className="md:col-span-2 rounded-xl border border-amber-200 bg-amber-50/50 p-4">
+              <div>
+                <h4 className="font-bold text-slate-900">
+                  Promotion
+                </h4>
+                <p className="mt-1 text-sm text-slate-500">
+                  Laissez vide si aucune promotion n’est prévue.
+                </p>
+              </div>
+
+              <div className="mt-4 grid gap-4 md:grid-cols-3">
+                <label>
+                  <span className="text-sm font-semibold">
+                    Prix promotionnel
+                  </span>
+
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={form.promoPrice}
+                    onChange={(event) =>
+                      updateField(
+                        'promoPrice',
+                        event.target.value,
+                      )
+                    }
+                    placeholder="Ex. 75000"
+                    className="mt-2 h-12 w-full rounded-lg border border-slate-200 bg-white px-4"
+                  />
+                </label>
+
+                <label>
+                  <span className="text-sm font-semibold">
+                    Début
+                  </span>
+
+                  <input
+                    type="date"
+                    value={form.promoStartAt}
+                    onChange={(event) =>
+                      updateField(
+                        'promoStartAt',
+                        event.target.value,
+                      )
+                    }
+                    className="mt-2 h-12 w-full rounded-lg border border-slate-200 bg-white px-4"
+                  />
+                </label>
+
+                <label>
+                  <span className="text-sm font-semibold">
+                    Fin
+                  </span>
+
+                  <input
+                    type="date"
+                    value={form.promoEndAt}
+                    onChange={(event) =>
+                      updateField(
+                        'promoEndAt',
+                        event.target.value,
+                      )
+                    }
+                    className="mt-2 h-12 w-full rounded-lg border border-slate-200 bg-white px-4"
+                  />
+                </label>
+              </div>
+            </div>
+          )}
+
+
+            </div>
+          </section>
+
+          <section
+            aria-labelledby="product-section-7"
+            className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6"
+          >
+            <div className="mb-5 flex gap-3 border-b border-slate-100 pb-4">
+              <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[#0E3B2E] text-xs font-bold text-white">
+                7
+              </div>
+
+              <div>
+                <h4
+                  id="product-section-7"
+                  className="font-bold text-slate-950"
+                >
+                  Publication
+                </h4>
+
+                <p className="mt-1 text-sm text-slate-500">
+                  Choisissez la visibilité du produit et sa mise en avant.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid gap-5 md:grid-cols-2">
+<label>
             <span className="text-sm font-semibold">
               Statut
             </span>
@@ -1037,75 +1451,15 @@ export function CatalogAdminPanel() {
             </span>
           </label>
 
-          <ProductMediaFields
-            mainMediaId={
-              form.mainMediaId
-            }
-            galleryMediaIds={
-              form.galleryMediaIds
-            }
-            datasheetMediaId={
-              form.datasheetMediaId
-            }
-            onMainMediaChange={(
-              mediaId,
-            ) =>
-              updateField(
-                'mainMediaId',
-                mediaId,
-              )
-            }
-            onGalleryMediaChange={(
-              mediaIds,
-            ) =>
-              updateField(
-                'galleryMediaIds',
-                mediaIds,
-              )
-            }
-            onDatasheetMediaChange={(
-              mediaId,
-            ) =>
-              updateField(
-                'datasheetMediaId',
-                mediaId,
-              )
-            }
-          />
 
-          <ProductAttributesFields
-            value={form.attributes}
-            onChange={(attributes) =>
-              updateField(
-                'attributes',
-                attributes,
-              )
-            }
-          />
-
-          <label className="md:col-span-2">
-            <span className="text-sm font-semibold">
-              Mots-clés
-            </span>
-
-            <input
-              value={form.keywords}
-              onChange={(event) =>
-                updateField(
-                  'keywords',
-                  event.target.value,
-                )
-              }
-              placeholder="solaire batterie énergie..."
-              className="mt-2 h-12 w-full rounded-lg border border-slate-200 px-4"
-            />
-          </label>
+            </div>
+          </section>
         </div>
 
         <button
           type="submit"
           disabled={isSaving}
-          className="mt-6 min-h-12 rounded-lg bg-blue-600 px-6 font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
+          className="mt-6 min-h-12 rounded-lg bg-blue-600 px-6 font-semibold text-white hover:bg-[#1F7A4D] disabled:opacity-60"
         >
           {isSaving
             ? 'Enregistrement...'
@@ -1113,29 +1467,173 @@ export function CatalogAdminPanel() {
               ? 'Enregistrer les modifications'
               : 'Créer le produit'}
         </button>
-      </form>
+            </form>
+          </div>
+        </div>
+      )}
 
-      <div className="mt-8">
-        <div className="flex items-center justify-between">
-          <h3 className="text-xl font-bold text-slate-900">
-            Produits ({products.length})
-          </h3>
+      {catalogView === 'CATEGORIES' && (
+        <div className="mt-8">
+          <ProductCategoriesPanel
+            categories={categories}
+            isLoading={isLoading}
+            onRefresh={loadData}
+          />
+        </div>
+      )}
 
-          <button
-            type="button"
-            onClick={() => void loadData()}
-            className="min-h-10 rounded-lg border border-slate-200 bg-white px-4 text-sm font-semibold"
-          >
-            Actualiser
-          </button>
+      <div
+        className={
+          catalogView === 'PRODUCTS'
+            ? 'mt-8'
+            : 'hidden'
+        }
+      >
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <h3 className="text-xl font-bold text-slate-950">
+                Catalogue produits
+              </h3>
+
+              <p className="mt-1 text-sm text-slate-500">
+                {filteredProducts.length} résultat{filteredProducts.length > 1 ? 's' : ''}
+                {' '}sur {products.length} produit{products.length > 1 ? 's' : ''}
+              </p>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() =>
+                  void loadData()
+                }
+                className="min-h-10 rounded-lg border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+              >
+                Actualiser
+              </button>
+
+              <button
+                type="button"
+                onClick={startCreate}
+                className="min-h-10 rounded-lg bg-[#0E3B2E] px-4 text-sm font-semibold text-white hover:bg-[#1F7A4D]"
+              >
+                + Nouveau produit
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-5 grid gap-3 lg:grid-cols-[minmax(0,1fr)_220px_180px]">
+            <label>
+              <span className="sr-only">
+                Rechercher un produit
+              </span>
+
+              <input
+                type="search"
+                value={searchQuery}
+                onChange={(event) =>
+                  setSearchQuery(
+                    event.target.value,
+                  )
+                }
+                placeholder="Rechercher par nom, référence ou marque..."
+                className="h-11 w-full rounded-lg border border-slate-200 bg-white px-4 text-sm outline-none transition focus:border-[#1F7A4D] focus:ring-2 focus:ring-[#1F7A4D]/15"
+              />
+            </label>
+
+            <label>
+              <span className="sr-only">
+                Filtrer par catégorie
+              </span>
+
+              <select
+                value={categoryFilter}
+                onChange={(event) =>
+                  setCategoryFilter(
+                    event.target.value,
+                  )
+                }
+                className="h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700"
+              >
+                <option value="ALL">
+                  Toutes les catégories
+                </option>
+
+                {categories.map((category) => (
+                  <option
+                    key={category.id}
+                    value={String(category.id)}
+                  >
+                    {category.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label>
+              <span className="sr-only">
+                Filtrer par statut
+              </span>
+
+              <select
+                value={statusFilter}
+                onChange={(event) =>
+                  setStatusFilter(
+                    event.target.value,
+                  )
+                }
+                className="h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700"
+              >
+                <option value="ALL">
+                  Tous les statuts
+                </option>
+                <option value="PUBLISHED">
+                  Publiés
+                </option>
+                <option value="DRAFT">
+                  Brouillons
+                </option>
+                <option value="ARCHIVED">
+                  Archivés
+                </option>
+              </select>
+            </label>
+          </div>
         </div>
 
         {isLoading ? (
-          <div className="mt-5 rounded-xl bg-white p-6">
+          <div className="mt-5 rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-500">
             Chargement...
           </div>
+        ) : filteredProducts.length === 0 ? (
+          <div className="mt-5 rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-12 text-center">
+            <h4 className="font-bold text-slate-900">
+              Aucun produit trouvé
+            </h4>
+
+            <p className="mx-auto mt-2 max-w-md text-sm text-slate-500">
+              Aucun produit ne correspond actuellement à votre recherche ou aux filtres sélectionnés.
+            </p>
+
+            {(searchQuery !== '' ||
+              categoryFilter !== 'ALL' ||
+              statusFilter !== 'ALL') && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchQuery('');
+                  setCategoryFilter('ALL');
+                  setStatusFilter('ALL');
+                }}
+                className="mt-5 min-h-10 rounded-lg border border-slate-200 bg-white px-4 text-sm font-semibold text-[#0E3B2E] hover:bg-slate-50"
+              >
+                Réinitialiser les filtres
+              </button>
+            )}
+          </div>
         ) : (
-          <div className="mt-5 overflow-x-auto rounded-2xl border border-slate-200 bg-white">
+          <div className="mt-5 overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
             <table className="min-w-[900px] w-full text-left text-sm">
               <thead className="border-b border-slate-200 bg-slate-50">
                 <tr>
@@ -1149,18 +1647,44 @@ export function CatalogAdminPanel() {
               </thead>
 
               <tbody>
-                {products.map((product) => (
+                {filteredProducts.map((product) => (
                   <tr
                     key={product.id}
-                    className="border-b border-slate-100"
+                    className="border-b border-slate-100 transition hover:bg-slate-50/70"
                   >
                     <td className="p-4">
-                      <p className="font-semibold text-slate-900">
-                        {product.name}
-                      </p>
-                      <p className="mt-1 text-xs text-slate-500">
-                        {product.sku}
-                      </p>
+                      <div className="flex min-w-[240px] items-center gap-3">
+                        <div className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
+                          {(
+                            product.mainMedia?.secureUrl ??
+                            product.imageUrl
+                          ) ? (
+                            <img
+                              src={
+                                product.mainMedia?.secureUrl ??
+                                product.imageUrl ??
+                                undefined
+                              }
+                              alt=""
+                              className="h-full w-full object-cover"
+                            />
+                          ) : (
+                            <span className="text-xs font-bold text-slate-400">
+                              GOI
+                            </span>
+                          )}
+                        </div>
+
+                        <div>
+                          <p className="font-semibold text-slate-900">
+                            {product.name}
+                          </p>
+
+                          <p className="mt-1 text-xs text-slate-500">
+                            {product.sku}
+                          </p>
+                        </div>
+                      </div>
                     </td>
 
                     <td className="p-4">
@@ -1172,11 +1696,23 @@ export function CatalogAdminPanel() {
                     </td>
 
                     <td className="p-4">
-                      {getStatusLabel(product.status)}
+                      <span
+                        className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
+                          product.status === 'PUBLISHED'
+                            ? 'bg-emerald-50 text-emerald-700'
+                            : product.status === 'DRAFT'
+                              ? 'bg-amber-50 text-amber-700'
+                              : 'bg-slate-100 text-slate-600'
+                        }`}
+                      >
+                        {getStatusLabel(product.status)}
+                      </span>
                     </td>
 
                     <td className="p-4">
-                      {getAvailabilityLabel(product.availability)}
+                      <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">
+                        {getAvailabilityLabel(product.availability)}
+                      </span>
                     </td>
 
                     <td className="p-4">
