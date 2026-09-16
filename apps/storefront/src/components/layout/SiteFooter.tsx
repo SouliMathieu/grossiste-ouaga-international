@@ -205,37 +205,39 @@ export function SiteFooter() {
             <div className="mt-4 space-y-3 text-sm text-white/70">
               {(company?.address ||
                 company?.city) && (
-                <div className="flex gap-2">
-                  <MapPin
-                    size={17}
-                    className="mt-0.5 shrink-0 text-goi-gold"
-                  />
+                <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                  <div className="flex gap-3">
+                    <MapPin
+                      size={19}
+                      className="mt-0.5 shrink-0 text-goi-gold"
+                    />
 
-                  {company?.mapsUrl ? (
-                    <a
-                      href={
-                        company.mapsUrl
-                      }
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      {[
-                        company.address,
-                        company.city,
-                      ]
-                        .filter(Boolean)
-                        .join(', ')}
-                    </a>
-                  ) : (
-                    <span>
-                      {[
-                        company?.address,
-                        company?.city,
-                      ]
-                        .filter(Boolean)
-                        .join(', ')}
-                    </span>
-                  )}
+                    <div className="min-w-0">
+                      <p className="font-semibold text-white">
+                        Localisation
+                      </p>
+
+                      <p className="mt-1 leading-6 text-white/70">
+                        {[
+                          company.address,
+                          company.city,
+                        ]
+                          .filter(Boolean)
+                          .join(', ')}
+                      </p>
+
+                      {company?.mapsUrl && (
+                        <a
+                          href={company.mapsUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="mt-2 inline-flex font-semibold text-goi-gold transition hover:text-white"
+                        >
+                          Voir sur Google Maps
+                        </a>
+                      )}
+                    </div>
+                  </div>
                 </div>
               )}
 

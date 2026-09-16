@@ -108,6 +108,7 @@ const companySchema = z.object({
   hoursText: nullableText(5000),
 
   mapsUrl: nullableUrl,
+  mapsEmbedUrl: nullableUrl,
 
   latitude: z
     .number()

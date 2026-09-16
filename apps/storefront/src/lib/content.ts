@@ -24,6 +24,7 @@ export type CompanySettings = {
   email: string | null;
   hoursText: string | null;
   mapsUrl: string | null;
+  mapsEmbedUrl: string | null;
   latitude: string | number | null;
   longitude: string | number | null;
   facebookUrl: string | null;

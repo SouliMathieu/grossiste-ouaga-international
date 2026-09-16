@@ -386,7 +386,40 @@ export function ContactPage() {
               </button>
             </form>
           </div>
-        </section>
+                {company?.mapsEmbedUrl && (
+          <div className="mx-auto mt-8 max-w-[1360px] px-4 sm:px-6">
+            <div className="overflow-hidden rounded-2xl bg-white shadow-sm">
+              <div className="border-b border-[#e6e9e6] p-5 sm:p-6">
+                <h2 className="text-2xl font-extrabold text-goi-navy">
+                  Nous trouver
+                </h2>
+
+                {(company.address ||
+                  company.city) && (
+                  <p className="mt-2 text-goi-muted">
+                    {[
+                      company.address,
+                      company.city,
+                    ]
+                      .filter(Boolean)
+                      .join(', ')}
+                  </p>
+                )}
+              </div>
+
+              <iframe
+                src={company.mapsEmbedUrl}
+                title={`Localisation de ${company.businessName}`}
+                loading="lazy"
+                allowFullScreen
+                referrerPolicy="strict-origin-when-cross-origin"
+                className="h-[360px] w-full border-0 sm:h-[450px]"
+              />
+            </div>
+          </div>
+        )}
+
+</section>
 
         {mapEmbedUrl && (
           <section className="bg-white py-14">

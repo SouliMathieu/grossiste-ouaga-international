@@ -28,6 +28,7 @@ type Company = {
   email: string | null;
   hoursText: string | null;
   mapsUrl: string | null;
+  mapsEmbedUrl: string | null;
   latitude: number | string | null;
   longitude: number | string | null;
   facebookUrl: string | null;
@@ -48,6 +49,7 @@ type FormState = {
   email: string;
   hoursText: string;
   mapsUrl: string;
+  mapsEmbedUrl: string;
   latitude: string;
   longitude: string;
   facebookUrl: string;
@@ -69,6 +71,7 @@ const emptyForm: FormState = {
   email: '',
   hoursText: '',
   mapsUrl: '',
+  mapsEmbedUrl: '',
   latitude: '',
   longitude: '',
   facebookUrl: '',
@@ -143,6 +146,8 @@ export function CompanySettingsAdminPanel() {
               value.hoursText ?? '',
             mapsUrl:
               value.mapsUrl ?? '',
+            mapsEmbedUrl:
+              value.mapsEmbedUrl ?? '',
             latitude:
               value.latitude ===
                 null
@@ -247,6 +252,10 @@ export function CompanySettingsAdminPanel() {
               mapsUrl:
                 nullable(
                   form.mapsUrl,
+                ),
+              mapsEmbedUrl:
+                nullable(
+                  form.mapsEmbedUrl,
                 ),
               latitude:
                 form.latitude.trim()
@@ -530,7 +539,7 @@ export function CompanySettingsAdminPanel() {
         <div className="mt-5 grid gap-5 md:grid-cols-2">
           <label className="md:col-span-2">
             <span className="text-sm font-semibold">
-              Lien Google Maps
+              Lien Google Maps — Itinéraire
             </span>
 
             <input
@@ -546,42 +555,28 @@ export function CompanySettingsAdminPanel() {
             />
           </label>
 
-          <label>
+          <label className="md:col-span-2">
             <span className="text-sm font-semibold">
-              Latitude
+              Lien d’intégration Google Maps — Carte
             </span>
 
             <input
-              type="number"
-              step="any"
-              value={form.latitude}
+              type="url"
+              value={form.mapsEmbedUrl}
               onChange={(event) =>
                 update(
-                  'latitude',
+                  'mapsEmbedUrl',
                   event.target.value,
                 )
               }
+              placeholder="https://www.google.com/maps/embed?pb=..."
               className="mt-2 min-h-11 w-full rounded-xl border border-slate-200 px-3"
             />
-          </label>
 
-          <label>
-            <span className="text-sm font-semibold">
-              Longitude
-            </span>
-
-            <input
-              type="number"
-              step="any"
-              value={form.longitude}
-              onChange={(event) =>
-                update(
-                  'longitude',
-                  event.target.value,
-                )
-              }
-              className="mt-2 min-h-11 w-full rounded-xl border border-slate-200 px-3"
-            />
+            <p className="mt-2 text-xs leading-5 text-slate-500">
+              Collez uniquement l’URL du champ src de l’iframe Google Maps.
+              Cette carte est affichée sur la page Contact.
+            </p>
           </label>
         </div>
       </section>

@@ -520,6 +520,7 @@ model CompanySettings {
   email          String?  @db.VarChar(191)
   hoursText      String?  @map("hours_text") @db.Text
   mapsUrl        String?  @map("maps_url") @db.Text
+  mapsEmbedUrl   String?  @map("maps_embed_url") @db.Text
   latitude       Decimal? @db.Decimal(10, 7)
   longitude      Decimal? @db.Decimal(10, 7)
   facebookUrl    String?  @map("facebook_url") @db.Text
