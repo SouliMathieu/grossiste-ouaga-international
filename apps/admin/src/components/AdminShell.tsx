@@ -143,7 +143,7 @@ const pageMeta: Record<
       'Consultez et traitez les demandes envoyées depuis le site.',
   },
   '/parametres': {
-    title: 'Paramètres entreprise',
+    title: 'Paramètres',
     description:
       'Gérez les coordonnées, le logo, les réseaux sociaux et la localisation.',
   },

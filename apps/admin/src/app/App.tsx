@@ -24,6 +24,7 @@ import { OrdersAdminPanel } from '../components/OrdersAdminPanel';
 import { PaymentAccountsAdminPanel } from '../components/PaymentAccountsAdminPanel';
 import { PaymentsAdminPanel } from '../components/PaymentsAdminPanel';
 import { CompanySettingsAdminPanel } from '../components/CompanySettingsAdminPanel';
+import { AdminAccountSettingsPanel } from '../components/AdminAccountSettingsPanel';
 import { ContactMessagesAdminPanel } from '../components/ContactMessagesAdminPanel';
 import { SiteContentAdminPanel } from '../components/SiteContentAdminPanel';
 import { AdsAdminPanel } from '../components/AdsAdminPanel';
@@ -404,7 +405,10 @@ export function App() {
           <Route
             path="/parametres"
             element={
-              <CompanySettingsAdminPanel />
+              <div className="space-y-6">
+                <CompanySettingsAdminPanel />
+                <AdminAccountSettingsPanel />
+              </div>
             }
           />
 

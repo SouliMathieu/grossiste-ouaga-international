@@ -22,6 +22,67 @@ const loginSchema = z.object({
   password: z.string().min(8).max(128),
 });
 
+const updateAdminAccountSchema = z
+  .object({
+    fullName: z
+      .string()
+      .trim()
+      .min(2)
+      .max(120),
+
+    email: z
+      .string()
+      .trim()
+      .email()
+      .max(191),
+
+    currentPassword: z
+      .string()
+      .min(8)
+      .max(128),
+
+    newPassword: z
+      .string()
+      .max(128)
+      .optional()
+      .default(''),
+
+    newPasswordConfirm: z
+      .string()
+      .max(128)
+      .optional()
+      .default(''),
+  })
+  .superRefine((value, context) => {
+    const wantsPasswordChange =
+      Boolean(value.newPassword) ||
+      Boolean(value.newPasswordConfirm);
+
+    if (
+      wantsPasswordChange &&
+      value.newPassword.length < 8
+    ) {
+      context.addIssue({
+        code: 'custom',
+        path: ['newPassword'],
+        message:
+          'Le nouveau mot de passe doit contenir au moins 8 caractères.',
+      });
+    }
+
+    if (
+      value.newPassword !==
+      value.newPasswordConfirm
+    ) {
+      context.addIssue({
+        code: 'custom',
+        path: ['newPasswordConfirm'],
+        message:
+          'La confirmation du nouveau mot de passe ne correspond pas.',
+      });
+    }
+  });
+
 const paymentStatusSchema = z.enum([
   'PENDING',
   'SUBMITTED',
@@ -154,6 +215,170 @@ adminRouter.get(
     return response.json({
       data: response.locals.admin,
     });
+  },
+);
+
+adminRouter.put(
+  '/auth/account',
+  requireAdmin,
+  async (request, response) => {
+    const parsed =
+      updateAdminAccountSchema.safeParse(
+        request.body,
+      );
+
+    if (!parsed.success) {
+      return response.status(400).json({
+        error: 'VALIDATION_ERROR',
+        message:
+          parsed.error.issues[0]?.message ??
+          'Les informations du compte sont invalides.',
+      });
+    }
+
+    const adminId =
+      response.locals.admin.id;
+
+    const currentSessionId =
+      response.locals.admin.sessionId;
+
+    try {
+      const admin =
+        await prisma.adminUser.findUnique({
+          where: {
+            id: adminId,
+          },
+        });
+
+      if (!admin || !admin.active) {
+        return response.status(401).json({
+          error: 'ADMIN_AUTH_REQUIRED',
+          message:
+            'Le compte administrateur est indisponible.',
+        });
+      }
+
+      const currentPasswordValid =
+        await bcrypt.compare(
+          parsed.data.currentPassword,
+          admin.passwordHash,
+        );
+
+      if (!currentPasswordValid) {
+        return response.status(401).json({
+          error: 'INVALID_CURRENT_PASSWORD',
+          message:
+            'Le mot de passe actuel est incorrect.',
+        });
+      }
+
+      const email =
+        parsed.data.email.toLowerCase();
+
+      const emailChanged =
+        email !== admin.email;
+
+      if (emailChanged) {
+        const existingAdmin =
+          await prisma.adminUser.findUnique({
+            where: {
+              email,
+            },
+          });
+
+        if (
+          existingAdmin &&
+          existingAdmin.id !== admin.id
+        ) {
+          return response.status(409).json({
+            error: 'ADMIN_EMAIL_IN_USE',
+            message:
+              'Cette adresse email est déjà utilisée par un autre compte administrateur.',
+          });
+        }
+      }
+
+      const wantsPasswordChange =
+        Boolean(parsed.data.newPassword);
+
+      const passwordHash =
+        wantsPasswordChange
+          ? await bcrypt.hash(
+              parsed.data.newPassword,
+              12,
+            )
+          : admin.passwordHash;
+
+      const updatedAdmin =
+        await prisma.adminUser.update({
+          where: {
+            id: admin.id,
+          },
+          data: {
+            fullName:
+              parsed.data.fullName,
+            email,
+            passwordHash,
+          },
+        });
+
+      const credentialsChanged =
+        emailChanged ||
+        wantsPasswordChange;
+
+      if (credentialsChanged) {
+        await prisma.adminSession.updateMany({
+          where: {
+            adminUserId: admin.id,
+            id: {
+              not: currentSessionId,
+            },
+            revokedAt: null,
+          },
+          data: {
+            revokedAt: new Date(),
+          },
+        });
+      }
+
+      return response.json({
+        data: {
+          id: updatedAdmin.id,
+          email: updatedAdmin.email,
+          fullName:
+            updatedAdmin.fullName,
+          role: updatedAdmin.role,
+        },
+        message: credentialsChanged
+          ? 'Compte mis à jour. Les autres sessions administrateur ont été déconnectées.'
+          : 'Compte administrateur mis à jour.',
+      });
+    } catch (error) {
+      if (
+        typeof error === 'object' &&
+        error !== null &&
+        'code' in error &&
+        (error as { code?: string })
+          .code === 'P2002'
+      ) {
+        return response.status(409).json({
+          error: 'ADMIN_EMAIL_IN_USE',
+          message:
+            'Cette adresse email est déjà utilisée par un autre compte administrateur.',
+        });
+      }
+
+      console.error(
+        'Erreur mise à jour compte admin :',
+        error,
+      );
+
+      return response.status(500).json({
+        error: 'INTERNAL_ERROR',
+        message:
+          'Impossible de mettre à jour le compte administrateur.',
+      });
+    }
   },
 );
 
