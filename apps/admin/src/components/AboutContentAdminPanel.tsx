@@ -35,11 +35,13 @@ type About = {
   introMediaId: number | null;
   implantationTitle: string | null;
   implantationText: string | null;
+  implantationMediaId: number | null;
   missionTitle: string | null;
   missionText: string | null;
   missionMediaId: number | null;
   valuesTitle: string | null;
   values: unknown;
+  valuesMediaId: number | null;
   strengthsTitle: string | null;
   strengths: unknown;
   strengthsMediaId: number | null;
@@ -55,11 +57,13 @@ type FormState = {
   introMediaId: number | null;
   implantationTitle: string;
   implantationText: string;
+  implantationMediaId: number | null;
   missionTitle: string;
   missionText: string;
   missionMediaId: number | null;
   valuesTitle: string;
   values: Item[];
+  valuesMediaId: number | null;
   strengthsTitle: string;
   strengths: Item[];
   strengthsMediaId: number | null;
@@ -75,11 +79,13 @@ const emptyForm: FormState = {
   introMediaId: null,
   implantationTitle: '',
   implantationText: '',
+  implantationMediaId: null,
   missionTitle: '',
   missionText: '',
   missionMediaId: null,
   valuesTitle: '',
   values: [],
+  valuesMediaId: null,
   strengthsTitle: '',
   strengths: [],
   strengthsMediaId: null,
@@ -302,6 +308,8 @@ export function AboutContentAdminPanel() {
           implantationText:
             value.implantationText ??
             '',
+          implantationMediaId:
+            value.implantationMediaId,
           missionTitle:
             value.missionTitle ?? '',
           missionText:
@@ -311,6 +319,8 @@ export function AboutContentAdminPanel() {
           valuesTitle:
             value.valuesTitle ?? '',
           values: items(value.values),
+          valuesMediaId:
+            value.valuesMediaId,
           strengthsTitle:
             value.strengthsTitle ??
             '',
@@ -394,6 +404,8 @@ export function AboutContentAdminPanel() {
               nullable(
                 form.implantationText,
               ),
+            implantationMediaId:
+              form.implantationMediaId,
             missionTitle:
               nullable(
                 form.missionTitle,
@@ -408,6 +420,8 @@ export function AboutContentAdminPanel() {
               nullable(
                 form.valuesTitle,
               ),
+            valuesMediaId:
+              form.valuesMediaId,
             values: form.values
               .filter(
                 (item) =>
@@ -477,48 +491,14 @@ export function AboutContentAdminPanel() {
     );
   }
 
-  const textFields = [
-    [
-      'heroTitle',
-      'Titre principal',
-      false,
-    ],
-    [
-      'heroText',
-      'Texte principal',
-      true,
-    ],
-    [
-      'introTitle',
-      'Titre introduction',
-      false,
-    ],
-    [
-      'introText',
-      'Introduction',
-      true,
-    ],
-    [
-      'implantationTitle',
-      'Titre implantation',
-      false,
-    ],
-    [
-      'implantationText',
-      'Texte implantation',
-      true,
-    ],
-    [
-      'missionTitle',
-      'Titre mission',
-      false,
-    ],
-    [
-      'missionText',
-      'Texte mission',
-      true,
-    ],
-  ] as const;
+  const inputClass =
+    'mt-2 min-h-11 w-full rounded-xl border border-slate-200 px-3 outline-none transition focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100';
+
+  const textareaClass =
+    'mt-2 w-full rounded-xl border border-slate-200 p-3 outline-none transition focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100';
+
+  const sectionClass =
+    'rounded-2xl border border-slate-200 bg-white p-5 sm:p-6';
 
   return (
     <form
@@ -539,74 +519,73 @@ export function AboutContentAdminPanel() {
         </div>
       )}
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6">
-        <h2 className="text-xl font-extrabold">
-          Contenu À propos
+      <div className="rounded-2xl border border-emerald-100 bg-emerald-50/60 p-5">
+        <h2 className="text-xl font-extrabold text-slate-900">
+          Page À propos
         </h2>
 
-        <div className="mt-6 grid gap-5 md:grid-cols-2">
-          {textFields.map(
-            ([key, label, multiline]) => (
-              <label
-                key={key}
-                className={
-                  multiline
-                    ? 'md:col-span-2'
-                    : ''
-                }
-              >
-                <span className="text-sm font-semibold">
-                  {label}
-                </span>
+        <p className="mt-2 text-sm leading-6 text-slate-600">
+          Gérez chaque bloc de la page avec son texte et son média associé.
+          Les sections sont affichées dans le même ordre sur le site public.
+        </p>
+      </div>
 
-                {multiline ? (
-                  <textarea
-                    rows={5}
-                    value={form[key]}
-                    onChange={(
-                      event,
-                    ) =>
-                      update(
-                        key,
-                        event.target
-                          .value,
-                      )
-                    }
-                    className="mt-2 w-full rounded-xl border border-slate-200 p-3"
-                  />
-                ) : (
-                  <input
-                    value={form[key]}
-                    onChange={(
-                      event,
-                    ) =>
-                      update(
-                        key,
-                        event.target
-                          .value,
-                      )
-                    }
-                    className="mt-2 min-h-11 w-full rounded-xl border border-slate-200 px-3"
-                  />
-                )}
-              </label>
-            ),
-          )}
+      {/* 1. HERO */}
+      <section className={sectionClass}>
+        <div className="border-b border-slate-100 pb-4">
+          <p className="text-xs font-bold uppercase tracking-[0.12em] text-emerald-700">
+            Section 1
+          </p>
+
+          <h2 className="mt-1 text-xl font-extrabold text-slate-900">
+            Hero
+          </h2>
+
+          <p className="mt-1 text-sm text-slate-500">
+            Première zone visible en haut de la page À propos.
+          </p>
         </div>
-      </section>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6">
-        <h2 className="text-xl font-extrabold">
-          Médias
-        </h2>
+        <div className="mt-5 grid gap-5 md:grid-cols-2">
+          <label>
+            <span className="text-sm font-semibold">
+              Titre principal
+            </span>
 
-        <div className="mt-5 grid gap-6 md:grid-cols-2">
+            <input
+              value={form.heroTitle}
+              onChange={(event) =>
+                update(
+                  'heroTitle',
+                  event.target.value,
+                )
+              }
+              className={inputClass}
+            />
+          </label>
+
+          <label className="md:col-span-2">
+            <span className="text-sm font-semibold">
+              Texte principal
+            </span>
+
+            <textarea
+              rows={5}
+              value={form.heroText}
+              onChange={(event) =>
+                update(
+                  'heroText',
+                  event.target.value,
+                )
+              }
+              className={textareaClass}
+            />
+          </label>
+
           <AdminMediaSelect
             label="Vidéo du hero"
             type="VIDEO"
-            value={
-              form.heroVideoMediaId
-            }
+            value={form.heroVideoMediaId}
             onChange={(value) =>
               update(
                 'heroVideoMediaId',
@@ -618,9 +597,7 @@ export function AboutContentAdminPanel() {
           <AdminMediaSelect
             label="Poster du hero"
             type="IMAGE"
-            value={
-              form.heroPosterMediaId
-            }
+            value={form.heroPosterMediaId}
             onChange={(value) =>
               update(
                 'heroPosterMediaId',
@@ -628,56 +605,249 @@ export function AboutContentAdminPanel() {
               )
             }
           />
-
-          <AdminMediaSelect
-            label="Image introduction"
-            type="IMAGE"
-            value={
-              form.introMediaId
-            }
-            onChange={(value) =>
-              update(
-                'introMediaId',
-                value,
-              )
-            }
-          />
-
-          <AdminMediaSelect
-            label="Image mission"
-            type="IMAGE"
-            value={
-              form.missionMediaId
-            }
-            onChange={(value) =>
-              update(
-                'missionMediaId',
-                value,
-              )
-            }
-          />
         </div>
       </section>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6">
-        <label>
-          <span className="text-sm font-semibold">
-            Titre des valeurs
-          </span>
+      {/* 2. PRESENTATION */}
+      <section className={sectionClass}>
+        <div className="border-b border-slate-100 pb-4">
+          <p className="text-xs font-bold uppercase tracking-[0.12em] text-emerald-700">
+            Section 2
+          </p>
 
-          <input
-            value={form.valuesTitle}
-            onChange={(event) =>
-              update(
-                'valuesTitle',
-                event.target.value,
-              )
-            }
-            className="mt-2 min-h-11 w-full rounded-xl border border-slate-200 px-3"
-          />
-        </label>
+          <h2 className="mt-1 text-xl font-extrabold text-slate-900">
+            Présentation
+          </h2>
 
-        <div className="mt-5">
+          <p className="mt-1 text-sm text-slate-500">
+            Présentation générale de Grossiste Ouaga International.
+          </p>
+        </div>
+
+        <div className="mt-5 grid gap-5 md:grid-cols-2">
+          <label className="md:col-span-2">
+            <span className="text-sm font-semibold">
+              Titre introduction
+            </span>
+
+            <input
+              value={form.introTitle}
+              onChange={(event) =>
+                update(
+                  'introTitle',
+                  event.target.value,
+                )
+              }
+              className={inputClass}
+            />
+          </label>
+
+          <label className="md:col-span-2">
+            <span className="text-sm font-semibold">
+              Introduction
+            </span>
+
+            <textarea
+              rows={6}
+              value={form.introText}
+              onChange={(event) =>
+                update(
+                  'introText',
+                  event.target.value,
+                )
+              }
+              className={textareaClass}
+            />
+          </label>
+
+          <div className="md:col-span-2">
+            <AdminMediaSelect
+              label="Image introduction"
+              type="IMAGE"
+              value={form.introMediaId}
+              onChange={(value) =>
+                update(
+                  'introMediaId',
+                  value,
+                )
+              }
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* 3. IMPLANTATION */}
+      <section className={sectionClass}>
+        <div className="border-b border-slate-100 pb-4">
+          <p className="text-xs font-bold uppercase tracking-[0.12em] text-emerald-700">
+            Section 3
+          </p>
+
+          <h2 className="mt-1 text-xl font-extrabold text-slate-900">
+            Implantation
+          </h2>
+
+          <p className="mt-1 text-sm text-slate-500">
+            Présentez la localisation de GOI et associez l’image ou la carte correspondante.
+          </p>
+        </div>
+
+        <div className="mt-5 grid gap-5 md:grid-cols-2">
+          <label className="md:col-span-2">
+            <span className="text-sm font-semibold">
+              Titre implantation
+            </span>
+
+            <input
+              value={form.implantationTitle}
+              onChange={(event) =>
+                update(
+                  'implantationTitle',
+                  event.target.value,
+                )
+              }
+              className={inputClass}
+            />
+          </label>
+
+          <label className="md:col-span-2">
+            <span className="text-sm font-semibold">
+              Texte implantation
+            </span>
+
+            <textarea
+              rows={5}
+              value={form.implantationText}
+              onChange={(event) =>
+                update(
+                  'implantationText',
+                  event.target.value,
+                )
+              }
+              className={textareaClass}
+            />
+          </label>
+
+          <div className="md:col-span-2">
+            <AdminMediaSelect
+              label="Image implantation / carte"
+              type="IMAGE"
+              value={
+                form.implantationMediaId
+              }
+              onChange={(value) =>
+                update(
+                  'implantationMediaId',
+                  value,
+                )
+              }
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* 4. MISSION */}
+      <section className={sectionClass}>
+        <div className="border-b border-slate-100 pb-4">
+          <p className="text-xs font-bold uppercase tracking-[0.12em] text-emerald-700">
+            Section 4
+          </p>
+
+          <h2 className="mt-1 text-xl font-extrabold text-slate-900">
+            Mission
+          </h2>
+
+          <p className="mt-1 text-sm text-slate-500">
+            Expliquez la mission et le rôle de GOI auprès de ses clients.
+          </p>
+        </div>
+
+        <div className="mt-5 grid gap-5 md:grid-cols-2">
+          <label className="md:col-span-2">
+            <span className="text-sm font-semibold">
+              Titre mission
+            </span>
+
+            <input
+              value={form.missionTitle}
+              onChange={(event) =>
+                update(
+                  'missionTitle',
+                  event.target.value,
+                )
+              }
+              className={inputClass}
+            />
+          </label>
+
+          <label className="md:col-span-2">
+            <span className="text-sm font-semibold">
+              Texte mission
+            </span>
+
+            <textarea
+              rows={6}
+              value={form.missionText}
+              onChange={(event) =>
+                update(
+                  'missionText',
+                  event.target.value,
+                )
+              }
+              className={textareaClass}
+            />
+          </label>
+
+          <div className="md:col-span-2">
+            <AdminMediaSelect
+              label="Image mission"
+              type="IMAGE"
+              value={form.missionMediaId}
+              onChange={(value) =>
+                update(
+                  'missionMediaId',
+                  value,
+                )
+              }
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* 5. VALEURS */}
+      <section className={sectionClass}>
+        <div className="border-b border-slate-100 pb-4">
+          <p className="text-xs font-bold uppercase tracking-[0.12em] text-emerald-700">
+            Section 5
+          </p>
+
+          <h2 className="mt-1 text-xl font-extrabold text-slate-900">
+            Valeurs
+          </h2>
+
+          <p className="mt-1 text-sm text-slate-500">
+            Ajoutez les valeurs de l’entreprise avec un titre et une courte description.
+          </p>
+        </div>
+
+        <div className="mt-5 space-y-5">
+          <label>
+            <span className="text-sm font-semibold">
+              Titre des valeurs
+            </span>
+
+            <input
+              value={form.valuesTitle}
+              onChange={(event) =>
+                update(
+                  'valuesTitle',
+                  event.target.value,
+                )
+              }
+              className={inputClass}
+            />
+          </label>
+
           <ItemsEditor
             title="Valeurs"
             value={form.values}
@@ -685,35 +855,58 @@ export function AboutContentAdminPanel() {
               update('values', value)
             }
           />
+
+          <AdminMediaSelect
+            label="Image des valeurs"
+            type="IMAGE"
+            value={form.valuesMediaId}
+            onChange={(value) =>
+              update(
+                'valuesMediaId',
+                value,
+              )
+            }
+          />
         </div>
       </section>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6">
-        <label>
-          <span className="text-sm font-semibold">
-            Titre des atouts
-          </span>
+      {/* 6. ATOUTS */}
+      <section className={sectionClass}>
+        <div className="border-b border-slate-100 pb-4">
+          <p className="text-xs font-bold uppercase tracking-[0.12em] text-emerald-700">
+            Section 6
+          </p>
 
-          <input
-            value={
-              form.strengthsTitle
-            }
-            onChange={(event) =>
-              update(
-                'strengthsTitle',
-                event.target.value,
-              )
-            }
-            className="mt-2 min-h-11 w-full rounded-xl border border-slate-200 px-3"
-          />
-        </label>
+          <h2 className="mt-1 text-xl font-extrabold text-slate-900">
+            Atouts
+          </h2>
 
-        <div className="mt-5">
+          <p className="mt-1 text-sm text-slate-500">
+            Présentez les principaux avantages et points forts de GOI.
+          </p>
+        </div>
+
+        <div className="mt-5 space-y-5">
+          <label>
+            <span className="text-sm font-semibold">
+              Titre des atouts
+            </span>
+
+            <input
+              value={form.strengthsTitle}
+              onChange={(event) =>
+                update(
+                  'strengthsTitle',
+                  event.target.value,
+                )
+              }
+              className={inputClass}
+            />
+          </label>
+
           <ItemsEditor
             title="Atouts"
-            value={
-              form.strengths
-            }
+            value={form.strengths}
             onChange={(value) =>
               update(
                 'strengths',
@@ -721,9 +914,7 @@ export function AboutContentAdminPanel() {
               )
             }
           />
-        </div>
 
-        <div className="mt-5">
           <AdminMediaSelect
             label="Image des atouts"
             type="IMAGE"
@@ -740,16 +931,19 @@ export function AboutContentAdminPanel() {
         </div>
       </section>
 
-      <button
-        type="submit"
-        disabled={isSaving}
-        className="inline-flex min-h-12 items-center gap-2 rounded-xl bg-blue-600 px-6 font-semibold text-white disabled:opacity-50"
-      >
-        <Save size={18} />
-        {isSaving
-          ? 'Enregistrement...'
-          : 'Enregistrer À propos'}
-      </button>
+      <div className="sticky bottom-4 z-10 flex justify-end rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-lg backdrop-blur">
+        <button
+          type="submit"
+          disabled={isSaving}
+          className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-emerald-700 px-5 font-bold text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          <Save size={17} />
+
+          {isSaving
+            ? 'Enregistrement...'
+            : 'Enregistrer À propos'}
+        </button>
+      </div>
     </form>
   );
 }

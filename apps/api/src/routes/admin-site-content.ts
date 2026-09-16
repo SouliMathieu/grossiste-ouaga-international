@@ -169,11 +169,17 @@ const aboutSchema = z.object({
   implantationText:
     nullableText(10000),
 
+  implantationMediaId:
+    nullablePositiveId,
+
   missionTitle: nullableText(191),
   missionText: nullableText(10000),
   missionMediaId: nullablePositiveId,
 
   valuesTitle: nullableText(191),
+
+  valuesMediaId:
+    nullablePositiveId,
 
   values: z
     .array(aboutItemSchema)
@@ -884,7 +890,9 @@ adminSiteContentRouter.get(
             heroVideo: true,
             heroPoster: true,
             introMedia: true,
+            implantationMedia: true,
             missionMedia: true,
+            valuesMedia: true,
             strengthsMedia: true,
           },
         });
@@ -947,7 +955,18 @@ adminSiteContentRouter.put(
           {
             id:
               parsed.data
+                .implantationMediaId,
+            type: 'IMAGE',
+          },
+          {
+            id:
+              parsed.data
                 .missionMediaId,
+            type: 'IMAGE',
+          },
+          {
+            id:
+              parsed.data.valuesMediaId,
             type: 'IMAGE',
           },
           {
@@ -978,7 +997,9 @@ adminSiteContentRouter.put(
             heroVideo: true,
             heroPoster: true,
             introMedia: true,
+            implantationMedia: true,
             missionMedia: true,
+            valuesMedia: true,
             strengthsMedia: true,
           },
         });

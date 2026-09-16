@@ -139,11 +139,13 @@ export type AboutContent = {
   introMedia: ContentMedia | null;
   implantationTitle: string | null;
   implantationText: string | null;
+  implantationMedia: ContentMedia | null;
   missionTitle: string | null;
   missionText: string | null;
   missionMedia: ContentMedia | null;
   valuesTitle: string | null;
   values: unknown;
+  valuesMedia: ContentMedia | null;
   strengthsTitle: string | null;
   strengths: unknown;
   strengthsMedia: ContentMedia | null;

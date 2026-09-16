@@ -301,11 +301,13 @@ model MediaAsset {
   companyLogos    CompanySettings[] @relation("CompanyLogo")
   companyFavicons CompanySettings[] @relation("CompanyFavicon")
 
-  aboutHeroVideos     AboutContent[] @relation("AboutHeroVideo")
-  aboutHeroPosters    AboutContent[] @relation("AboutHeroPoster")
-  aboutIntroImages    AboutContent[] @relation("AboutIntroImage")
-  aboutMissionImages  AboutContent[] @relation("AboutMissionImage")
-  aboutStrengthImages AboutContent[] @relation("AboutStrengthImage")
+  aboutHeroVideos         AboutContent[] @relation("AboutHeroVideo")
+  aboutHeroPosters        AboutContent[] @relation("AboutHeroPoster")
+  aboutIntroImages        AboutContent[] @relation("AboutIntroImage")
+  aboutImplantationImages AboutContent[] @relation("AboutImplantationImage")
+  aboutMissionImages      AboutContent[] @relation("AboutMissionImage")
+  aboutValuesImages       AboutContent[] @relation("AboutValuesImage")
+  aboutStrengthImages     AboutContent[] @relation("AboutStrengthImage")
 
   @@index([resourceType, status])
   @@index([folder])
@@ -539,35 +541,47 @@ model CompanySettings {
 }
 
 model AboutContent {
-  id                Int      @id @default(1)
-  heroTitle         String?  @map("hero_title") @db.VarChar(191)
-  heroText          String?  @map("hero_text") @db.Text
-  heroVideoMediaId  Int?     @map("hero_video_media_id")
-  heroPosterMediaId Int?     @map("hero_poster_media_id")
-  introTitle        String?  @map("intro_title") @db.VarChar(191)
-  introText         String?  @map("intro_text") @db.Text
-  introMediaId      Int?     @map("intro_media_id")
-  implantationTitle String?  @map("implantation_title") @db.VarChar(191)
-  implantationText  String?  @map("implantation_text") @db.Text
-  missionTitle      String?  @map("mission_title") @db.VarChar(191)
-  missionText       String?  @map("mission_text") @db.Text
-  missionMediaId    Int?     @map("mission_media_id")
-  valuesTitle       String?  @map("values_title") @db.VarChar(191)
-  values            Json?
-  strengthsTitle    String?  @map("strengths_title") @db.VarChar(191)
-  strengths         Json?
-  strengthsMediaId  Int?     @map("strengths_media_id")
-  createdAt         DateTime @default(now()) @map("created_at")
-  updatedAt         DateTime @updatedAt @map("updated_at")
+  id                Int     @id @default(1)
+  heroTitle         String? @map("hero_title") @db.VarChar(191)
+  heroText          String? @map("hero_text") @db.Text
+  heroVideoMediaId  Int?    @map("hero_video_media_id")
+  heroPosterMediaId Int?    @map("hero_poster_media_id")
 
-  heroVideo      MediaAsset? @relation("AboutHeroVideo", fields: [heroVideoMediaId], references: [id], onDelete: SetNull)
-  heroPoster     MediaAsset? @relation("AboutHeroPoster", fields: [heroPosterMediaId], references: [id], onDelete: SetNull)
-  introMedia     MediaAsset? @relation("AboutIntroImage", fields: [introMediaId], references: [id], onDelete: SetNull)
-  missionMedia   MediaAsset? @relation("AboutMissionImage", fields: [missionMediaId], references: [id], onDelete: SetNull)
-  strengthsMedia MediaAsset? @relation("AboutStrengthImage", fields: [strengthsMediaId], references: [id], onDelete: SetNull)
+  introTitle   String? @map("intro_title") @db.VarChar(191)
+  introText    String? @map("intro_text") @db.Text
+  introMediaId Int?    @map("intro_media_id")
+
+  implantationTitle   String? @map("implantation_title") @db.VarChar(191)
+  implantationText    String? @map("implantation_text") @db.Text
+  implantationMediaId Int?    @map("implantation_media_id")
+
+  missionTitle   String? @map("mission_title") @db.VarChar(191)
+  missionText    String? @map("mission_text") @db.Text
+  missionMediaId Int?    @map("mission_media_id")
+
+  valuesTitle   String? @map("values_title") @db.VarChar(191)
+  values        Json?
+  valuesMediaId Int?    @map("values_media_id")
+
+  strengthsTitle   String? @map("strengths_title") @db.VarChar(191)
+  strengths        Json?
+  strengthsMediaId Int?    @map("strengths_media_id")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  heroVideo         MediaAsset? @relation("AboutHeroVideo", fields: [heroVideoMediaId], references: [id], onDelete: SetNull)
+  heroPoster        MediaAsset? @relation("AboutHeroPoster", fields: [heroPosterMediaId], references: [id], onDelete: SetNull)
+  introMedia        MediaAsset? @relation("AboutIntroImage", fields: [introMediaId], references: [id], onDelete: SetNull)
+  implantationMedia MediaAsset? @relation("AboutImplantationImage", fields: [implantationMediaId], references: [id], onDelete: SetNull)
+  missionMedia      MediaAsset? @relation("AboutMissionImage", fields: [missionMediaId], references: [id], onDelete: SetNull)
+  valuesMedia       MediaAsset? @relation("AboutValuesImage", fields: [valuesMediaId], references: [id], onDelete: SetNull)
+  strengthsMedia    MediaAsset? @relation("AboutStrengthImage", fields: [strengthsMediaId], references: [id], onDelete: SetNull)
 
   @@index([heroVideoMediaId])
   @@index([heroPosterMediaId])
+  @@index([implantationMediaId])
+  @@index([valuesMediaId])
   @@map("about_content")
 }
 

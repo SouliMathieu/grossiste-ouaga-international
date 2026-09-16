@@ -387,7 +387,13 @@ contentRouter.get(
             introMedia: {
               select: mediaSelect,
             },
+            implantationMedia: {
+              select: mediaSelect,
+            },
             missionMedia: {
+              select: mediaSelect,
+            },
+            valuesMedia: {
               select: mediaSelect,
             },
             strengthsMedia: {

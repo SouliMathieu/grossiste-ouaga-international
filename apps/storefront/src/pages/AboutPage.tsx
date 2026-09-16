@@ -25,10 +25,24 @@ import {
 const provisionalIntro =
   'Grossiste Ouaga International, ou GOI, est une entreprise basée à Ouagadougou spécialisée dans la vente d’équipements solaires, électriques, électroniques et électroménagers. Au-delà de la vente de produits, GOI réalise également des installations solaires et électriques afin d’accompagner ses clients dans la mise en place de solutions adaptées à leurs besoins.';
 
-const defaultValues = [
-  'Proximité',
-  'Engagement',
-  'Clarté',
+type AboutItem = {
+  title: string;
+  text: string;
+};
+
+const defaultValues: AboutItem[] = [
+  {
+    title: 'Proximité',
+    text: '',
+  },
+  {
+    title: 'Engagement',
+    text: '',
+  },
+  {
+    title: 'Clarté',
+    text: '',
+  },
 ];
 
 const domains = [
@@ -50,9 +64,9 @@ const domains = [
   },
 ];
 
-function stringList(
+function aboutItems(
   value: unknown,
-) {
+): AboutItem[] {
   if (!Array.isArray(value)) {
     return [];
   }
@@ -60,7 +74,16 @@ function stringList(
   return value.flatMap(
     (item) => {
       if (typeof item === 'string') {
-        return [item];
+        const title = item.trim();
+
+        return title
+          ? [
+              {
+                title,
+                text: '',
+              },
+            ]
+          : [];
       }
 
       if (
@@ -76,16 +99,33 @@ function stringList(
           unknown
         >;
 
-      const text =
+      const titleValue =
         record.title ??
         record.name ??
-        record.label ??
-        record.text;
+        record.label;
 
-      return typeof text ===
+      const title =
+        typeof titleValue ===
         'string'
-        ? [text]
-        : [];
+          ? titleValue.trim()
+          : '';
+
+      const text =
+        typeof record.text ===
+        'string'
+          ? record.text.trim()
+          : '';
+
+      if (!title) {
+        return [];
+      }
+
+      return [
+        {
+          title,
+          text,
+        },
+      ];
     },
   );
 }
@@ -168,12 +208,17 @@ export function AboutPage() {
   }, []);
 
   const values =
-    stringList(about?.values);
+    aboutItems(about?.values);
 
   const strengths =
-    stringList(
+    aboutItems(
       about?.strengths,
     );
+
+  const displayedValues =
+    values.length > 0
+      ? values
+      : defaultValues;
 
   if (isLoading) {
     return (
@@ -288,9 +333,9 @@ export function AboutPage() {
           </div>
         </section>
 
-        <section className="bg-goi-ivory py-14">
-          <div className="mx-auto grid max-w-[1360px] gap-8 px-4 sm:px-6 lg:grid-cols-2 lg:items-center">
-            <div className="rounded-2xl bg-goi-navy p-8 text-white">
+        <section className="bg-goi-ivory py-14 sm:py-16">
+          <div className="mx-auto grid max-w-[1360px] gap-8 px-4 sm:px-6 lg:grid-cols-2 lg:items-stretch">
+            <div className="flex flex-col justify-center rounded-2xl bg-goi-navy p-8 text-white sm:p-10">
               <MapPin
                 size={32}
                 className="text-goi-gold"
@@ -301,7 +346,7 @@ export function AboutPage() {
                   'Notre implantation'}
               </h2>
 
-              <p className="mt-4 leading-7 text-white/75">
+              <p className="mt-4 whitespace-pre-line leading-7 text-white/75">
                 {about?.implantationText ??
                   'GOI exerce ses activités depuis Ouagadougou, Burkina Faso.'}
               </p>
@@ -311,7 +356,7 @@ export function AboutPage() {
                   href={company.mapsUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="mt-6 inline-flex min-h-11 items-center gap-2 rounded-xl bg-goi-gold px-5 font-bold text-goi-navy"
+                  className="mt-6 inline-flex min-h-11 w-fit items-center gap-2 rounded-xl bg-goi-gold px-5 font-bold text-goi-navy"
                 >
                   Itinéraire
                   <ArrowRight
@@ -321,22 +366,40 @@ export function AboutPage() {
               )}
             </div>
 
-            <div className="flex min-h-72 items-center justify-center rounded-2xl border border-[#d8ded8] bg-white">
-              <div className="text-center">
-                <MapPin
-                  size={44}
-                  className="mx-auto text-goi-blue"
-                />
+            {about?.implantationMedia
+              ?.secureUrl ? (
+              <img
+                src={
+                  about
+                    .implantationMedia
+                    .secureUrl
+                }
+                alt={
+                  about
+                    .implantationMedia
+                    .alt ??
+                  'Implantation de GOI à Ouagadougou'
+                }
+                className="h-full min-h-72 w-full rounded-2xl object-cover"
+              />
+            ) : (
+              <div className="flex min-h-72 items-center justify-center rounded-2xl border border-[#d8ded8] bg-white">
+                <div className="text-center">
+                  <MapPin
+                    size={44}
+                    className="mx-auto text-goi-blue"
+                  />
 
-                <p className="mt-4 text-xl font-bold text-goi-navy">
-                  Ouagadougou
-                </p>
+                  <p className="mt-4 text-xl font-bold text-goi-navy">
+                    Ouagadougou
+                  </p>
 
-                <p className="mt-1 text-goi-muted">
-                  Burkina Faso
-                </p>
+                  <p className="mt-1 text-goi-muted">
+                    Burkina Faso
+                  </p>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </section>
 
@@ -374,33 +437,75 @@ export function AboutPage() {
           </section>
         )}
 
-        <section className="bg-goi-surface py-14">
+        <section className="bg-goi-surface py-14 sm:py-16">
           <div className="mx-auto max-w-[1360px] px-4 sm:px-6">
-            <h2 className="text-center text-3xl font-extrabold text-goi-navy">
-              {about?.valuesTitle ??
-                'Nos valeurs'}
-            </h2>
+            <div className="text-center">
+              <h2 className="text-3xl font-extrabold text-goi-navy">
+                {about?.valuesTitle ??
+                  'Nos valeurs'}
+              </h2>
+            </div>
 
-            <div className="mt-8 grid gap-5 md:grid-cols-3">
-              {(values.length > 0
-                ? values
-                : defaultValues
-              ).map((value) => (
-                <article
-                  key={value}
-                  className="rounded-2xl bg-white p-6 text-center"
-                >
-                  <h3 className="text-xl font-bold text-goi-navy">
-                    {value}
-                  </h3>
-                </article>
-              ))}
+            <div
+              className={
+                about?.valuesMedia
+                  ?.secureUrl
+                  ? 'mt-8 grid gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-center'
+                  : 'mt-8'
+              }
+            >
+              {about?.valuesMedia
+                ?.secureUrl && (
+                <img
+                  src={
+                    about
+                      .valuesMedia
+                      .secureUrl
+                  }
+                  alt={
+                    about
+                      .valuesMedia
+                      .alt ??
+                    'Valeurs de GOI'
+                  }
+                  className="w-full rounded-2xl object-cover"
+                />
+              )}
+
+              <div
+                className={[
+                  'grid gap-5 sm:grid-cols-2',
+                  !about?.valuesMedia
+                    ?.secureUrl
+                    ? 'lg:grid-cols-3'
+                    : '',
+                ].join(' ')}
+              >
+                {displayedValues.map(
+                  (value, index) => (
+                    <article
+                      key={`${value.title}-${index}`}
+                      className="rounded-2xl bg-white p-6 shadow-sm"
+                    >
+                      <h3 className="text-xl font-bold text-goi-navy">
+                        {value.title}
+                      </h3>
+
+                      {value.text && (
+                        <p className="mt-3 leading-7 text-goi-muted">
+                          {value.text}
+                        </p>
+                      )}
+                    </article>
+                  ),
+                )}
+              </div>
             </div>
           </div>
         </section>
 
         {strengths.length > 0 && (
-          <section className="bg-white py-14">
+          <section className="bg-white py-14 sm:py-16">
             <div className="mx-auto grid max-w-[1360px] gap-8 px-4 sm:px-6 lg:grid-cols-2 lg:items-center">
               {about?.strengthsMedia
                 ?.secureUrl && (
@@ -414,9 +519,9 @@ export function AboutPage() {
                     about
                       .strengthsMedia
                       .alt ??
-                    'GOI'
+                    'Atouts de GOI'
                   }
-                  className="aspect-[4/3] w-full rounded-2xl object-cover"
+                  className="w-full rounded-2xl object-cover"
                 />
               )}
 
@@ -426,18 +531,29 @@ export function AboutPage() {
                     'Nos atouts'}
                 </h2>
 
-                <ul className="mt-6 space-y-3">
+                <div className="mt-6 space-y-4">
                   {strengths.map(
-                    (strength) => (
-                      <li
-                        key={strength}
-                        className="rounded-xl bg-goi-surface p-4 font-semibold text-goi-navy"
+                    (
+                      strength,
+                      index,
+                    ) => (
+                      <article
+                        key={`${strength.title}-${index}`}
+                        className="rounded-2xl bg-goi-surface p-5"
                       >
-                        {strength}
-                      </li>
+                        <h3 className="font-bold text-goi-navy">
+                          {strength.title}
+                        </h3>
+
+                        {strength.text && (
+                          <p className="mt-2 leading-7 text-goi-muted">
+                            {strength.text}
+                          </p>
+                        )}
+                      </article>
                     ),
                   )}
-                </ul>
+                </div>
               </div>
             </div>
           </section>
