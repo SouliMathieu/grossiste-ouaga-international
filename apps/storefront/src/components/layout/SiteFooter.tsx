@@ -96,7 +96,7 @@ export function SiteFooter() {
                       .alt ??
                     company.businessName
                   }
-                  className="h-12 w-auto max-w-[180px] object-contain brightness-0 invert"
+                  className="h-12 w-auto max-w-[180px] object-contain"
                 />
               ) : (
                 <span className="text-3xl font-black">
