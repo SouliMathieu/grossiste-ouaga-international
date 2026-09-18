@@ -198,6 +198,8 @@ model Category {
   updatedAt   DateTime @updatedAt @map("updated_at")
 
   products Product[]
+  mediaAssets MediaAsset[]
+
 
   @@index([active, sortOrder])
   @@map("categories")
@@ -286,6 +288,8 @@ model MediaAsset {
   alt          String?           @db.VarChar(255)
   caption      String?           @db.VarChar(500)
   folder       String            @db.VarChar(191)
+  categoryId   Int?              @map("category_id")
+  category     Category?         @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   status       MediaStatus       @default(PENDING)
   createdAt    DateTime          @default(now()) @map("created_at")
   updatedAt    DateTime          @updatedAt @map("updated_at")
@@ -311,6 +315,7 @@ model MediaAsset {
 
   @@index([resourceType, status])
   @@index([folder])
+  @@index([folder, categoryId, status])
   @@map("media_assets")
 }
 

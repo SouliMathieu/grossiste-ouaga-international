@@ -49,6 +49,8 @@ type UploadResponse = {
 type ProductMediaFieldsProps = {
   mainMediaId: number | null;
   galleryMediaIds: number[];
+  categoryId: number | null;
+  categoryName: string | null;
   onMainMediaChange: (
     mediaId: number | null,
   ) => void;
@@ -110,6 +112,8 @@ const allowedImageTypes = new Set([
 export function ProductMediaFields({
   mainMediaId,
   galleryMediaIds,
+  categoryId,
+  categoryName,
   onMainMediaChange,
   onGalleryMediaChange,
 }: ProductMediaFieldsProps) {
@@ -184,6 +188,24 @@ export function ProductMediaFields({
         params.set('q', search);
       }
 
+      if (
+        selectedScope ===
+          'products'
+      ) {
+        if (!categoryId) {
+          setImages([]);
+          setTotal(0);
+          setTotalPages(1);
+          setIsLoading(false);
+          return;
+        }
+
+        params.set(
+          'categoryId',
+          String(categoryId),
+        );
+      }
+
       try {
         const response =
           await adminFetch(
@@ -223,7 +245,11 @@ export function ProductMediaFields({
         setIsLoading(false);
       }
     },
-    [page, selectedScope],
+    [
+      page,
+      selectedScope,
+      categoryId,
+    ],
   );
 
   useEffect(() => {
@@ -287,8 +313,26 @@ export function ProductMediaFields({
 
     form.append(
       'scope',
-      'products',
+      selectedScope,
     );
+
+    if (
+      selectedScope ===
+        'products'
+    ) {
+      if (!categoryId) {
+        setError(
+          'Choisissez d’abord la catégorie du produit.',
+        );
+        setIsUploadingImage(false);
+        return;
+      }
+
+      form.append(
+        'categoryId',
+        String(categoryId),
+      );
+    }
 
     if (imageAlt.trim()) {
       form.append(
@@ -425,6 +469,27 @@ export function ProductMediaFields({
           sélectionnez une image dans le
           dossier de votre choix.
         </p>
+
+        {selectedScope ===
+          'products' && (
+          <div className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+            {categoryId ? (
+              <>
+                Catégorie appliquée
+                automatiquement :{' '}
+                <strong>
+                  {categoryName ??
+                    `#${categoryId}`}
+                </strong>
+              </>
+            ) : (
+              <strong>
+                Choisissez d’abord la
+                catégorie du produit.
+              </strong>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">

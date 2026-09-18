@@ -59,6 +59,12 @@ const upload = multer({
 const uploadMetadataSchema = z.object({
   scope: z.enum(MEDIA_SCOPES),
 
+  categoryId: z.coerce
+    .number()
+    .int()
+    .positive()
+    .optional(),
+
   alt: z
     .string()
     .trim()
@@ -98,6 +104,16 @@ const mediaListQuerySchema = z.object({
 
   resourceType:
     mediaResourceTypeSchema.optional(),
+
+  categoryId: z
+    .union([
+      z.literal('uncategorized'),
+      z.coerce
+        .number()
+        .int()
+        .positive(),
+    ])
+    .optional(),
 
   q: z
     .string()
@@ -182,6 +198,52 @@ function singleMediaUpload(
   );
 }
 
+const mediaCategoryUpdateSchema =
+  z.object({
+    categoryId: z
+      .number()
+      .int()
+      .positive()
+      .nullable(),
+  });
+
+adminMediaRouter.get(
+  '/categories',
+  async (_request, response) => {
+    try {
+      const categories =
+        await prisma.category.findMany({
+          where: {
+            active: true,
+          },
+          orderBy: {
+            name: 'asc',
+          },
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+          },
+        });
+
+      return response.json({
+        data: categories,
+      });
+    } catch (error) {
+      console.error(
+        'Erreur catégories médias :',
+        error,
+      );
+
+      return response.status(500).json({
+        error: 'INTERNAL_ERROR',
+        message:
+          'Impossible de récupérer les catégories.',
+      });
+    }
+  },
+);
+
 adminMediaRouter.get(
   '/',
   async (request, response) => {
@@ -203,10 +265,23 @@ adminMediaRouter.get(
       status,
       scope,
       resourceType,
+      categoryId,
       q,
       page,
       limit,
     } = parsed.data;
+
+    if (
+      categoryId !== undefined &&
+      scope !== 'products'
+    ) {
+      return response.status(400).json({
+        error:
+          'MEDIA_CATEGORY_REQUIRES_PRODUCTS',
+        message:
+          'Le filtre catégorie est réservé au dossier Produits.',
+      });
+    }
 
     const folder = scope
       ? MEDIA_FOLDER_BY_SCOPE[scope]
@@ -221,6 +296,20 @@ adminMediaRouter.get(
         : {}),
       ...(resourceType
         ? { resourceType }
+        : {}),
+
+      ...(scope === 'products' &&
+      categoryId === 'uncategorized'
+        ? {
+            categoryId: null,
+          }
+        : {}),
+
+      ...(scope === 'products' &&
+      typeof categoryId === 'number'
+        ? {
+            categoryId,
+          }
         : {}),
       ...(q
         ? {
@@ -252,6 +341,17 @@ adminMediaRouter.get(
       ] = await prisma.$transaction([
         prisma.mediaAsset.findMany({
           where,
+
+          include: {
+            category: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+              },
+            },
+          },
+
           orderBy: {
             createdAt: 'desc',
           },
@@ -350,12 +450,64 @@ adminMediaRouter.post(
       });
     }
 
+    if (
+      parsed.data.scope === 'products' &&
+      !parsed.data.categoryId
+    ) {
+      return response.status(400).json({
+        error:
+          'MEDIA_CATEGORY_REQUIRED',
+        message:
+          'Choisissez une catégorie produit avant l’import.',
+      });
+    }
+
+    if (
+      parsed.data.scope !== 'products' &&
+      parsed.data.categoryId
+    ) {
+      return response.status(400).json({
+        error:
+          'MEDIA_CATEGORY_NOT_ALLOWED',
+        message:
+          'Une catégorie produit ne peut être associée qu’au dossier Produits.',
+      });
+    }
+
     const folder =
       MEDIA_FOLDER_BY_SCOPE[
         parsed.data.scope
       ];
 
     try {
+
+      if (
+        parsed.data.scope ===
+          'products' &&
+        parsed.data.categoryId
+      ) {
+        const category =
+          await prisma.category.findFirst({
+            where: {
+              id:
+                parsed.data.categoryId,
+              active: true,
+            },
+            select: {
+              id: true,
+            },
+          });
+
+        if (!category) {
+          return response.status(400).json({
+            error:
+              'MEDIA_CATEGORY_NOT_FOUND',
+            message:
+              'La catégorie produit sélectionnée est introuvable ou inactive.',
+          });
+        }
+      }
+
       const uploaded =
         await uploadMediaBuffer(
           request.file.buffer,
@@ -397,6 +549,14 @@ adminMediaRouter.post(
             caption:
               parsed.data.caption,
             folder,
+
+        categoryId:
+          parsed.data.scope ===
+            'products'
+            ? parsed.data.categoryId ??
+              null
+            : null,
+
             status: 'READY',
           },
         });
@@ -415,6 +575,132 @@ adminMediaRouter.post(
           'MEDIA_UPLOAD_FAILED',
         message:
           'Impossible d’envoyer le média.',
+      });
+    }
+  },
+);
+
+adminMediaRouter.patch(
+  '/:id/category',
+  async (request, response) => {
+    const id =
+      Number(request.params.id);
+
+    if (
+      !Number.isInteger(id) ||
+      id <= 0
+    ) {
+      return response.status(400).json({
+        error: 'INVALID_MEDIA_ID',
+        message:
+          'Identifiant média invalide.',
+      });
+    }
+
+    const parsed =
+      mediaCategoryUpdateSchema.safeParse(
+        request.body,
+      );
+
+    if (!parsed.success) {
+      return response.status(400).json({
+        error:
+          'INVALID_MEDIA_CATEGORY',
+        message:
+          'La catégorie sélectionnée est invalide.',
+      });
+    }
+
+    try {
+      const media =
+        await prisma.mediaAsset.findUnique({
+          where: {
+            id,
+          },
+          select: {
+            id: true,
+            folder: true,
+          },
+        });
+
+      if (!media) {
+        return response.status(404).json({
+          error: 'MEDIA_NOT_FOUND',
+          message:
+            'Ce média est introuvable.',
+        });
+      }
+
+      if (
+        media.folder !==
+        MEDIA_FOLDER_BY_SCOPE.products
+      ) {
+        return response.status(400).json({
+          error:
+            'MEDIA_CATEGORY_NOT_ALLOWED',
+          message:
+            'Seuls les médias du dossier Produits peuvent recevoir une catégorie produit.',
+        });
+      }
+
+      if (
+        parsed.data.categoryId !== null
+      ) {
+        const category =
+          await prisma.category.findFirst({
+            where: {
+              id:
+                parsed.data.categoryId,
+              active: true,
+            },
+            select: {
+              id: true,
+            },
+          });
+
+        if (!category) {
+          return response.status(400).json({
+            error:
+              'MEDIA_CATEGORY_NOT_FOUND',
+            message:
+              'La catégorie sélectionnée est introuvable ou inactive.',
+          });
+        }
+      }
+
+      const updated =
+        await prisma.mediaAsset.update({
+          where: {
+            id,
+          },
+          data: {
+            categoryId:
+              parsed.data.categoryId,
+          },
+          include: {
+            category: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+              },
+            },
+          },
+        });
+
+      return response.json({
+        data: updated,
+      });
+    } catch (error) {
+      console.error(
+        'Erreur modification catégorie média :',
+        error,
+      );
+
+      return response.status(500).json({
+        error: 'INTERNAL_ERROR',
+        message:
+          'Impossible de modifier la catégorie du média.',
       });
     }
   },

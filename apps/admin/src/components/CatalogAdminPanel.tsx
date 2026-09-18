@@ -936,6 +936,22 @@ export function CatalogAdminPanel() {
             galleryMediaIds={
               form.galleryMediaIds
             }
+            categoryId={
+              form.categoryId
+                ? Number(
+                    form.categoryId,
+                  )
+                : null
+            }
+            categoryName={
+              categories.find(
+                (category) =>
+                  String(
+                    category.id,
+                  ) ===
+                  form.categoryId,
+              )?.name ?? null
+            }
             onMainMediaChange={(
               mediaId,
             ) =>
