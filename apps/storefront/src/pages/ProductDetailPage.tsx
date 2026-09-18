@@ -271,6 +271,53 @@ export function ProductDetailPage() {
       );
   }, [lightboxOpen]);
 
+  useEffect(() => {
+    if (!product) {
+      return;
+    }
+
+    const viewPrice =
+      getEffectivePrice(product);
+
+    setDocumentSeo({
+      title:
+        `${product.name} | Grossiste Ouaga International`,
+      description:
+        `${product.name}${
+          product.brand
+            ? ` — ${product.brand}`
+            : ''
+        }. Disponible auprès de Grossiste Ouaga International à Ouagadougou.`,
+      path:
+        `/produits/${product.slug}`,
+      image:
+        product.imageUrl,
+      type: 'product',
+    });
+
+    trackViewItem({
+      currency: 'XOF',
+      ...(viewPrice !== null
+        ? {
+            value: viewPrice,
+          }
+        : {}),
+      items: [
+        {
+          id: product.id,
+          sku: product.sku,
+          name: product.name,
+          ...(viewPrice !== null
+            ? {
+                price: viewPrice,
+              }
+            : {}),
+          quantity: 1,
+        },
+      ],
+    });
+  }, [product]);
+
   if (isLoading) {
     return (
       <>
@@ -371,55 +418,6 @@ export function ProductDetailPage() {
       company?.whatsapp,
       `Bonjour GOI, je souhaite avoir des informations sur le produit "${product.name}" (${product.sku}).`,
     );
-
-  useEffect(() => {
-    if (!product) {
-      return;
-    }
-
-    setDocumentSeo({
-      title:
-        `${product.name} | Grossiste Ouaga International`,
-      description:
-        `${product.name}${
-          product.brand
-            ? ` — ${product.brand}`
-            : ''
-        }. Disponible auprès de Grossiste Ouaga International à Ouagadougou.`,
-      path:
-        `/produits/${product.slug}`,
-      image:
-        product.imageUrl,
-      type: 'product',
-    });
-
-    trackViewItem({
-      currency: 'XOF',
-      ...(effectivePrice !== null
-        ? {
-            value:
-              effectivePrice,
-          }
-        : {}),
-      items: [
-        {
-          id: product.id,
-          sku: product.sku,
-          name: product.name,
-          ...(effectivePrice !== null
-            ? {
-                price:
-                  effectivePrice,
-              }
-            : {}),
-          quantity: 1,
-        },
-      ],
-    });
-  }, [
-    product?.id,
-    effectivePrice,
-  ]);
 
   function selectRelativeImage(
     direction: -1 | 1,
