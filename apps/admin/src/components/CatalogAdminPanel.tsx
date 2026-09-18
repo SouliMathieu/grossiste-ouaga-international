@@ -919,11 +919,11 @@ export function CatalogAdminPanel() {
                   id="product-section-2"
                   className="font-bold text-slate-950"
                 >
-                  Photos et documents
+                  Photos du produit
                 </h4>
 
                 <p className="mt-1 text-sm text-slate-500">
-                  Choisissez l’image principale, la galerie et la fiche technique.
+                  Choisissez l’image principale et les images de galerie.
                 </p>
               </div>
             </div>
@@ -935,9 +935,6 @@ export function CatalogAdminPanel() {
             }
             galleryMediaIds={
               form.galleryMediaIds
-            }
-            datasheetMediaId={
-              form.datasheetMediaId
             }
             onMainMediaChange={(
               mediaId,
@@ -953,14 +950,6 @@ export function CatalogAdminPanel() {
               updateField(
                 'galleryMediaIds',
                 mediaIds,
-              )
-            }
-            onDatasheetMediaChange={(
-              mediaId,
-            ) =>
-              updateField(
-                'datasheetMediaId',
-                mediaId,
               )
             }
           />
@@ -1105,7 +1094,7 @@ export function CatalogAdminPanel() {
                 </h4>
 
                 <p className="mt-1 text-sm text-slate-500">
-                  Configurez le prix, le conditionnement et la disponibilité.
+                  Configurez le prix et la disponibilité.
                 </p>
               </div>
             </div>
@@ -1168,64 +1157,6 @@ export function CatalogAdminPanel() {
                 Le client devra demander une cotation.
               </span>
             </span>
-          </label>
-
-          <label>
-            <span className="text-sm font-semibold">
-              Unité *
-            </span>
-
-            <input
-              required
-              value={form.unit}
-              onChange={(event) =>
-                updateField(
-                  'unit',
-                  event.target.value,
-                )
-              }
-              className="mt-2 h-12 w-full rounded-lg border border-slate-200 px-4"
-            />
-          </label>
-
-          <label>
-            <span className="text-sm font-semibold">
-              MOQ *
-            </span>
-
-            <input
-              required
-              type="number"
-              min="1"
-              value={form.minOrderQty}
-              onChange={(event) =>
-                updateField(
-                  'minOrderQty',
-                  event.target.value,
-                )
-              }
-              className="mt-2 h-12 w-full rounded-lg border border-slate-200 px-4"
-            />
-          </label>
-
-          <label>
-            <span className="text-sm font-semibold">
-              Conditionnement *
-            </span>
-
-            <input
-              required
-              type="number"
-              min="1"
-              value={form.packSize}
-              onChange={(event) =>
-                updateField(
-                  'packSize',
-                  event.target.value,
-                )
-              }
-              className="mt-2 h-12 w-full rounded-lg border border-slate-200 px-4"
-            />
           </label>
 
           <label>

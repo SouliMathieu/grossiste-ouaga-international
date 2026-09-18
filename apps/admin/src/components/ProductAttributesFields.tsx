@@ -62,11 +62,11 @@ export function ProductAttributesFields({
           type="button"
           onClick={() =>
             onChange([
-              ...value,
               {
                 name: '',
                 value: '',
               },
+              ...value,
             ])
           }
           className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-slate-900 px-4 text-sm font-semibold text-white"

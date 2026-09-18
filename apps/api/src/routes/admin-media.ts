@@ -83,6 +83,45 @@ const mediaStatusSchema = z.enum([
   'ARCHIVED',
 ]);
 
+const mediaResourceTypeSchema = z.enum([
+  'IMAGE',
+  'VIDEO',
+  'RAW',
+]);
+
+const mediaListQuerySchema = z.object({
+  status: mediaStatusSchema.optional(),
+
+  scope: z
+    .enum(MEDIA_SCOPES)
+    .optional(),
+
+  resourceType:
+    mediaResourceTypeSchema.optional(),
+
+  q: z
+    .string()
+    .trim()
+    .max(120)
+    .optional()
+    .transform(
+      (value) => value || undefined,
+    ),
+
+  page: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .default(1),
+
+  limit: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(200)
+    .default(200),
+});
+
 function ensureCloudinary(
   _request: Request,
   response: Response,
@@ -146,41 +185,101 @@ function singleMediaUpload(
 adminMediaRouter.get(
   '/',
   async (request, response) => {
-    const statusResult =
-      mediaStatusSchema
-        .optional()
-        .safeParse(
-          request.query.status,
-        );
+    const parsed =
+      mediaListQuerySchema.safeParse(
+        request.query,
+      );
 
-    if (!statusResult.success) {
+    if (!parsed.success) {
       return response.status(400).json({
         error:
-          'INVALID_MEDIA_STATUS',
+          'INVALID_MEDIA_FILTERS',
         message:
-          'Le statut média est invalide.',
+          'Les filtres de la bibliothèque média sont invalides.',
       });
     }
 
-    try {
-      const media =
-        await prisma.mediaAsset.findMany({
-          ...(statusResult.data
-            ? {
-                where: {
-                  status:
-                    statusResult.data,
+    const {
+      status,
+      scope,
+      resourceType,
+      q,
+      page,
+      limit,
+    } = parsed.data;
+
+    const folder = scope
+      ? MEDIA_FOLDER_BY_SCOPE[scope]
+      : undefined;
+
+    const where = {
+      ...(status
+        ? { status }
+        : {}),
+      ...(folder
+        ? { folder }
+        : {}),
+      ...(resourceType
+        ? { resourceType }
+        : {}),
+      ...(q
+        ? {
+            OR: [
+              {
+                publicId: {
+                  contains: q,
                 },
-              }
-            : {}),
+              },
+              {
+                alt: {
+                  contains: q,
+                },
+              },
+              {
+                caption: {
+                  contains: q,
+                },
+              },
+            ],
+          }
+        : {}),
+    };
+
+    try {
+      const [
+        media,
+        total,
+      ] = await prisma.$transaction([
+        prisma.mediaAsset.findMany({
+          where,
           orderBy: {
             createdAt: 'desc',
           },
-          take: 200,
-        });
+          skip:
+            (page - 1) *
+            limit,
+          take: limit,
+        }),
+
+        prisma.mediaAsset.count({
+          where,
+        }),
+      ]);
 
       return response.json({
         data: media,
+        meta: {
+          page,
+          limit,
+          total,
+          totalPages:
+            Math.max(
+              1,
+              Math.ceil(
+                total / limit,
+              ),
+            ),
+        },
       });
     } catch (error) {
       console.error(
