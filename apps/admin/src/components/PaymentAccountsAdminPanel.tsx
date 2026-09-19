@@ -23,6 +23,7 @@ type Method = {
   code: string;
   name: string;
   type: string;
+  actionMode: 'MANUAL' | 'USSD' | 'URL';
   instructions: string | null;
   account: Account | null;
 };
@@ -31,6 +32,7 @@ type FormState = {
   accountName: string;
   accountNumber: string;
   merchantCode: string;
+  actionMode: 'MANUAL' | 'USSD' | 'URL';
   actionUrl: string;
   ussdTemplate: string;
   instructions: string;
@@ -50,6 +52,8 @@ function toForm(method: Method): FormState {
       method.account?.accountNumber ?? '',
     merchantCode:
       method.account?.merchantCode ?? '',
+    actionMode:
+      method.actionMode ?? 'MANUAL',
     actionUrl:
       method.account?.actionUrl ?? '',
     ussdTemplate:
@@ -143,6 +147,7 @@ export function PaymentAccountsAdminPanel() {
           accountName: '',
           accountNumber: '',
           merchantCode: '',
+          actionMode: 'MANUAL',
           actionUrl: '',
           ussdTemplate: '',
           instructions: '',
@@ -187,10 +192,16 @@ export function PaymentAccountsAdminPanel() {
               form.accountNumber.trim() || null,
             merchantCode:
               form.merchantCode.trim() || null,
+            actionMode:
+              form.actionMode,
             actionUrl:
-              form.actionUrl.trim() || null,
+              form.actionMode === 'URL'
+                ? form.actionUrl.trim() || null
+                : null,
             ussdTemplate:
-              form.ussdTemplate.trim() || null,
+              form.actionMode === 'USSD'
+                ? form.ussdTemplate.trim() || null
+                : null,
             instructions:
               form.instructions.trim() || null,
             active: form.active,
@@ -308,7 +319,7 @@ export function PaymentAccountsAdminPanel() {
 
                 <label className="block">
                   <span className="text-sm font-semibold">
-                    Numéro / compte marchand
+                    Numéro / compte de réception
                   </span>
 
                   <input
@@ -326,7 +337,7 @@ export function PaymentAccountsAdminPanel() {
 
                 <label className="block">
                   <span className="text-sm font-semibold">
-                    Code marchand
+                    Code marchand (optionnel)
                   </span>
 
                   <input
@@ -360,6 +371,113 @@ export function PaymentAccountsAdminPanel() {
                     className="mt-2 w-full rounded-lg border border-slate-200 p-3"
                   />
                 </label>
+
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                  <label className="block">
+                    <span className="text-sm font-semibold">
+                      Action de paiement
+                    </span>
+
+                    <select
+                      value={form.actionMode}
+                      onChange={(event) =>
+                        updateField(
+                          method.code,
+                          'actionMode',
+                          event.target.value,
+                        )
+                      }
+                      className="mt-2 h-11 w-full rounded-lg border border-slate-200 bg-white px-3"
+                    >
+                      <option value="MANUAL">
+                        Manuel
+                      </option>
+
+                      <option value="USSD">
+                        USSD
+                      </option>
+
+                      <option value="URL">
+                        Lien / application
+                      </option>
+                    </select>
+                  </label>
+
+                  {form.actionMode === 'USSD' && (
+                    <label className="mt-4 block">
+                      <span className="text-sm font-semibold">
+                        Code USSD officiel
+                      </span>
+
+                      <input
+                        value={form.ussdTemplate}
+                        onChange={(event) =>
+                          updateField(
+                            method.code,
+                            'ussdTemplate',
+                            event.target.value,
+                          )
+                        }
+                        placeholder="Code officiel fourni par l’opérateur"
+                        required
+                        className="mt-2 h-11 w-full rounded-lg border border-slate-200 bg-white px-3 font-mono"
+                      />
+
+                      <p className="mt-2 text-xs leading-5 text-slate-500">
+                        Exemple de modèle :
+                        <code className="ml-1 font-mono">
+                          *XXX*...*XXXXXXXX*{'{amount}'}#
+                        </code>
+                      </p>
+
+                      <p className="mt-2 text-xs leading-5 text-slate-500">
+                        Utilisez uniquement un code USSD
+                        officiel et testé. Vous pouvez
+                        utiliser {'{amount}'} pour insérer
+                        automatiquement le montant de la
+                        commande.
+                      </p>
+                    </label>
+                  )}
+
+                  {form.actionMode === 'URL' && (
+                    <label className="mt-4 block">
+                      <span className="text-sm font-semibold">
+                        Lien officiel
+                      </span>
+
+                      <input
+                        type="url"
+                        value={form.actionUrl}
+                        onChange={(event) =>
+                          updateField(
+                            method.code,
+                            'actionUrl',
+                            event.target.value,
+                          )
+                        }
+                        placeholder="https://..."
+                        required
+                        className="mt-2 h-11 w-full rounded-lg border border-slate-200 bg-white px-3"
+                      />
+
+                      <p className="mt-2 text-xs leading-5 text-slate-500">
+                        Utilisez uniquement un lien ou
+                        deep link officiel testé avec
+                        l’opérateur.
+                      </p>
+                    </label>
+                  )}
+
+                  {form.actionMode === 'MANUAL' && (
+                    <p className="mt-3 text-xs leading-5 text-slate-500">
+                      Aucun bouton opérateur ne sera
+                      affiché. Le client utilisera les
+                      informations de paiement et les
+                      boutons de copie.
+                    </p>
+                  )}
+                </div>
 
                 <label className="flex items-center gap-3">
                   <input

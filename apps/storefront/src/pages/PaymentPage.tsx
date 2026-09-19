@@ -84,6 +84,42 @@ type CopiedField =
   | 'accountNumber'
   | null;
 
+function getPaymentActionHref(
+  account: PaymentAccount,
+  amount: number,
+) {
+  const ussd =
+    account.ussdTemplate?.trim();
+
+  if (ussd) {
+    if (
+      !Number.isFinite(amount) ||
+      amount <= 0
+    ) {
+      return null;
+    }
+
+    const amountForUssd =
+      String(Math.round(amount));
+
+    const resolvedUssd = ussd.replace(
+      /\{amount\}/g,
+      amountForUssd,
+    );
+
+    const dialCode = resolvedUssd
+      .replace(/\s+/g, '')
+      .replace(/#/g, '%23');
+
+    return `tel:${dialCode}`;
+  }
+
+  const actionUrl =
+    account.actionUrl?.trim();
+
+  return actionUrl || null;
+}
+
 function getPaymentStatusLabel(status: string) {
   switch (status) {
     case 'PENDING':
@@ -543,7 +579,7 @@ export function PaymentPage() {
                           .accountNumber && (
                           <div className="mt-5 border-t border-blue-100 pt-4">
                             <p className="text-xs font-semibold uppercase tracking-wide text-goi-muted">
-                              Numéro / compte marchand
+                              Numéro / compte de réception
                             </p>
 
                             <div className="mt-2 flex flex-wrap items-center gap-3">
@@ -587,6 +623,40 @@ export function PaymentPage() {
                             </div>
                           </div>
                         )}
+
+                        {payment.status ===
+                          'PENDING' &&
+                          getPaymentActionHref(
+                            payment.method.account,
+                            payment.amount,
+                          ) && (
+                            <div className="mt-5 border-t border-blue-100 pt-4">
+                              <a
+                                href={
+                                  getPaymentActionHref(
+                                    payment.method
+                                      .account,
+                                    payment.amount,
+                                  )!
+                                }
+                                className="inline-flex min-h-11 items-center justify-center rounded-lg bg-[#0E3B2E] px-4 text-sm font-bold text-white transition hover:bg-[#1F7A4D]"
+                              >
+                                Ouvrir{' '}
+                                {
+                                  payment.method
+                                    .name
+                                }
+                              </a>
+
+                              <p className="mt-2 text-xs leading-5 text-goi-muted">
+                                Si l’ouverture ne
+                                fonctionne pas sur votre
+                                appareil, utilisez les
+                                informations ci-dessus
+                                pour payer manuellement.
+                              </p>
+                            </div>
+                          )}
 
                         <p className="mt-5 border-t border-blue-100 pt-4 text-sm leading-6 text-goi-muted">
                           Vérifiez le bénéficiaire et le

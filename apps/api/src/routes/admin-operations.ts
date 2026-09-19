@@ -40,6 +40,11 @@ const paymentAccountSchema = z.object({
   accountName: nullableText(120),
   accountNumber: nullableText(100),
   merchantCode: nullableText(100),
+  actionMode: z.enum([
+    'MANUAL',
+    'USSD',
+    'URL',
+  ]).default('MANUAL'),
   actionUrl: z
     .union([
       z.string().trim().url(),
@@ -313,6 +318,7 @@ adminOperationsRouter.get(
             code: method.code,
             name: method.name,
             type: method.type,
+            actionMode: method.actionMode,
             instructions: method.instructions,
             account: account
               ? {
@@ -407,11 +413,45 @@ adminOperationsRouter.put(
         });
       }
 
+      if (
+        parsed.data.actionMode === 'USSD' &&
+        !parsed.data.ussdTemplate
+      ) {
+        return response.status(400).json({
+          error: 'USSD_TEMPLATE_REQUIRED',
+          message:
+            'Renseignez le code USSD officiel pour utiliser l’action USSD.',
+        });
+      }
+
+      if (
+        parsed.data.actionMode === 'URL' &&
+        !parsed.data.actionUrl
+      ) {
+        return response.status(400).json({
+          error: 'ACTION_URL_REQUIRED',
+          message:
+            'Renseignez le lien officiel pour utiliser l’action par lien.',
+        });
+      }
+
+      const actionUrl =
+        parsed.data.actionMode === 'URL'
+          ? parsed.data.actionUrl
+          : null;
+
+      const ussdTemplate =
+        parsed.data.actionMode === 'USSD'
+          ? parsed.data.ussdTemplate
+          : null;
+
       await prisma.paymentMethod.update({
         where: {
           id: method.id,
         },
         data: {
+          actionMode:
+            parsed.data.actionMode,
           instructions:
             parsed.data.instructions,
         },
@@ -448,10 +488,8 @@ adminOperationsRouter.put(
                 parsed.data.accountNumber,
               merchantCode:
                 parsed.data.merchantCode,
-              actionUrl:
-                parsed.data.actionUrl,
-              ussdTemplate:
-                parsed.data.ussdTemplate,
+              actionUrl,
+              ussdTemplate,
               active: parsed.data.active,
             },
           })
@@ -464,10 +502,8 @@ adminOperationsRouter.put(
                 parsed.data.accountNumber,
               merchantCode:
                 parsed.data.merchantCode,
-              actionUrl:
-                parsed.data.actionUrl,
-              ussdTemplate:
-                parsed.data.ussdTemplate,
+              actionUrl,
+              ussdTemplate,
               active: parsed.data.active,
             },
           });
@@ -476,6 +512,8 @@ adminOperationsRouter.put(
         data: {
           code: method.code,
           name: method.name,
+          actionMode:
+            parsed.data.actionMode,
           instructions:
             parsed.data.instructions,
           account: {
