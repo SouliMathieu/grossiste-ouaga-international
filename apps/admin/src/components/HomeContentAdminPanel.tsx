@@ -134,6 +134,16 @@ export function HomeContentAdminPanel() {
     null,
   );
 
+  const [
+    isSlideFormOpen,
+    setIsSlideFormOpen,
+  ] = useState(false);
+
+  const [
+    isTrustFormOpen,
+    setIsTrustFormOpen,
+  ] = useState(false);
+
   const [isLoading, setIsLoading] =
     useState(true);
 
@@ -191,11 +201,13 @@ export function HomeContentAdminPanel() {
   function resetSlide() {
     setEditingSlideId(null);
     setSlideForm(emptySlide);
+    setIsSlideFormOpen(false);
   }
 
   function resetTrust() {
     setEditingTrustId(null);
     setTrustForm(emptyTrust);
+    setIsTrustFormOpen(false);
   }
 
   async function saveSlide(
@@ -407,9 +419,49 @@ export function HomeContentAdminPanel() {
           </p>
         </div>
 
+        <div className="flex items-center justify-end border-b border-slate-200 bg-slate-50/40 p-4 sm:px-6">
+          <button
+            type="button"
+            onClick={() => {
+              if (isSlideFormOpen) {
+                resetSlide();
+                return;
+              }
+
+              resetSlide();
+              setIsSlideFormOpen(true);
+              setError(null);
+              setSuccess(null);
+            }}
+            className={[
+              'inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold transition',
+              isSlideFormOpen
+                ? 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                : 'bg-[#0E3B2E] text-white hover:bg-[#1F7A4D]',
+            ].join(' ')}
+          >
+            {isSlideFormOpen ? (
+              <>
+                <X size={17} />
+                Fermer
+              </>
+            ) : (
+              <>
+                <Plus size={17} />
+                Ajouter une slide
+              </>
+            )}
+          </button>
+        </div>
+
         <form
           onSubmit={saveSlide}
-          className="grid gap-5 border-b border-slate-200 bg-slate-50/60 p-5 md:grid-cols-2 sm:p-6"
+          className={[
+            'gap-5 border-b border-slate-200 bg-slate-50/60 p-5 md:grid-cols-2 sm:p-6',
+            isSlideFormOpen
+              ? 'grid'
+              : 'hidden',
+          ].join(' ')}
         >
           <div className="md:col-span-2 flex items-center justify-between">
             <h3 className="font-bold text-slate-900">
@@ -432,6 +484,8 @@ export function HomeContentAdminPanel() {
 
           <div className="md:col-span-2">
             <AdminMediaSelect
+            defaultScope="home"
+            uploadScope="home"
               label="Image"
               type="IMAGE"
               value={
@@ -672,6 +726,7 @@ export function HomeContentAdminPanel() {
                       setEditingSlideId(
                         slide.id,
                       );
+                      setIsSlideFormOpen(true);
 
                       setSlideForm({
                         imageMediaId:
@@ -727,9 +782,49 @@ export function HomeContentAdminPanel() {
           </h2>
         </div>
 
+        <div className="flex items-center justify-end border-b border-slate-200 bg-slate-50/40 p-4 sm:px-6">
+          <button
+            type="button"
+            onClick={() => {
+              if (isTrustFormOpen) {
+                resetTrust();
+                return;
+              }
+
+              resetTrust();
+              setIsTrustFormOpen(true);
+              setError(null);
+              setSuccess(null);
+            }}
+            className={[
+              'inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold transition',
+              isTrustFormOpen
+                ? 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                : 'bg-[#0E3B2E] text-white hover:bg-[#1F7A4D]',
+            ].join(' ')}
+          >
+            {isTrustFormOpen ? (
+              <>
+                <X size={17} />
+                Fermer
+              </>
+            ) : (
+              <>
+                <Plus size={17} />
+                Ajouter une carte
+              </>
+            )}
+          </button>
+        </div>
+
         <form
           onSubmit={saveTrust}
-          className="grid gap-5 border-b border-slate-200 bg-slate-50/60 p-5 md:grid-cols-2 sm:p-6"
+          className={[
+            'gap-5 border-b border-slate-200 bg-slate-50/60 p-5 md:grid-cols-2 sm:p-6',
+            isTrustFormOpen
+              ? 'grid'
+              : 'hidden',
+          ].join(' ')}
         >
           <label>
             <span className="text-sm font-semibold">
@@ -901,6 +996,7 @@ export function HomeContentAdminPanel() {
                       setEditingTrustId(
                         card.id,
                       );
+                      setIsTrustFormOpen(true);
 
                       setTrustForm({
                         title:

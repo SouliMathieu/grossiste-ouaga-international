@@ -502,6 +502,8 @@ export function CompanySettingsAdminPanel() {
 
         <div className="mt-5 grid gap-6 md:grid-cols-2">
           <AdminMediaSelect
+            defaultScope="brand"
+            uploadScope="brand"
             label="Logo"
             type="IMAGE"
             value={
@@ -516,6 +518,8 @@ export function CompanySettingsAdminPanel() {
           />
 
           <AdminMediaSelect
+            defaultScope="brand"
+            uploadScope="brand"
             label="Favicon"
             type="IMAGE"
             value={

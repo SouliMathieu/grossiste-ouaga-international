@@ -583,6 +583,8 @@ export function AboutContentAdminPanel() {
           </label>
 
           <AdminMediaSelect
+            defaultScope="about"
+            uploadScope="about"
             label="Vidéo du hero"
             type="VIDEO"
             value={form.heroVideoMediaId}
@@ -595,6 +597,8 @@ export function AboutContentAdminPanel() {
           />
 
           <AdminMediaSelect
+            defaultScope="about"
+            uploadScope="about"
             label="Poster du hero"
             type="IMAGE"
             value={form.heroPosterMediaId}
@@ -662,6 +666,8 @@ export function AboutContentAdminPanel() {
 
           <div className="md:col-span-2">
             <AdminMediaSelect
+            defaultScope="about"
+            uploadScope="about"
               label="Image introduction"
               type="IMAGE"
               value={form.introMediaId}
@@ -730,6 +736,8 @@ export function AboutContentAdminPanel() {
 
           <div className="md:col-span-2">
             <AdminMediaSelect
+            defaultScope="about"
+            uploadScope="about"
               label="Image implantation / carte"
               type="IMAGE"
               value={
@@ -800,6 +808,8 @@ export function AboutContentAdminPanel() {
 
           <div className="md:col-span-2">
             <AdminMediaSelect
+            defaultScope="about"
+            uploadScope="about"
               label="Image mission"
               type="IMAGE"
               value={form.missionMediaId}
@@ -857,6 +867,8 @@ export function AboutContentAdminPanel() {
           />
 
           <AdminMediaSelect
+            defaultScope="about"
+            uploadScope="about"
             label="Image des valeurs"
             type="IMAGE"
             value={form.valuesMediaId}
@@ -916,6 +928,8 @@ export function AboutContentAdminPanel() {
           />
 
           <AdminMediaSelect
+            defaultScope="about"
+            uploadScope="about"
             label="Image des atouts"
             type="IMAGE"
             value={

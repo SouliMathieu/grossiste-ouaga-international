@@ -182,6 +182,11 @@ export function RealizationsContentAdminPanel() {
   );
 
   const [
+    isFormOpen,
+    setIsFormOpen,
+  ] = useState(false);
+
+  const [
     categoryName,
     setCategoryName,
   ] = useState('');
@@ -454,6 +459,7 @@ export function RealizationsContentAdminPanel() {
 
       setForm(emptyForm);
       setEditingId(null);
+      setIsFormOpen(false);
       setSuccess(
         'Réalisation enregistrée.',
       );
@@ -513,6 +519,7 @@ export function RealizationsContentAdminPanel() {
     item: Realization,
   ) {
     setEditingId(item.id);
+    setIsFormOpen(true);
 
     setForm({
       categoryId:
@@ -652,12 +659,13 @@ export function RealizationsContentAdminPanel() {
         </div>
       </section>
 
-      <form
-        onSubmit={
-          saveRealization
-        }
-        className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6"
-      >
+      {isFormOpen && (
+        <form
+          onSubmit={
+            saveRealization
+          }
+          className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6"
+        >
         <div className="flex items-center justify-between gap-4">
           <h2 className="text-xl font-extrabold">
             {editingId
@@ -665,19 +673,18 @@ export function RealizationsContentAdminPanel() {
               : 'Nouvelle réalisation'}
           </h2>
 
-          {editingId && (
-            <button
-              type="button"
-              onClick={() => {
-                setEditingId(null);
-                setForm(emptyForm);
-              }}
-              className="flex items-center gap-2 text-sm text-slate-500"
-            >
-              <X size={16} />
-              Annuler
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={() => {
+              setEditingId(null);
+              setForm(emptyForm);
+              setIsFormOpen(false);
+            }}
+            className="flex min-h-10 items-center gap-2 rounded-lg border border-slate-200 px-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
+          >
+            <X size={16} />
+            Fermer
+          </button>
         </div>
 
         <div className="mt-6 grid gap-5 md:grid-cols-2">
@@ -1072,6 +1079,8 @@ export function RealizationsContentAdminPanel() {
           </div>
 
           <AdminMediaSelect
+            defaultScope="realizations"
+            uploadScope="realizations"
             label="Image de couverture"
             type="IMAGE"
             value={
@@ -1089,6 +1098,8 @@ export function RealizationsContentAdminPanel() {
           />
 
           <AdminMediaSelect
+            defaultScope="realizations"
+            uploadScope="realizations"
             label="Vidéo"
             type="VIDEO"
             value={
@@ -1107,6 +1118,8 @@ export function RealizationsContentAdminPanel() {
 
           <div className="md:col-span-2">
             <AdminMediaMultiSelect
+              defaultScope="realizations"
+              uploadScope="realizations"
               label="Galerie photos"
               value={
                 form.galleryMediaIds
@@ -1236,13 +1249,35 @@ export function RealizationsContentAdminPanel() {
               : 'Créer la réalisation'}
           </button>
         </div>
-      </form>
+        </form>
+      )}
 
       <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
-        <div className="border-b border-slate-200 p-5">
-          <h2 className="text-xl font-extrabold">
-            Réalisations
-          </h2>
+        <div className="flex flex-col gap-4 border-b border-slate-200 p-5 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="text-xl font-extrabold text-slate-950">
+              Réalisations
+            </h2>
+
+            <p className="mt-1 text-sm text-slate-500">
+              Consultez les réalisations existantes ou ajoutez-en une nouvelle.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              setEditingId(null);
+              setForm(emptyForm);
+              setIsFormOpen(true);
+              setError(null);
+              setSuccess(null);
+            }}
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#0E3B2E] px-4 text-sm font-semibold text-white transition hover:bg-[#1F7A4D]"
+          >
+            <Plus size={17} />
+            Nouvelle réalisation
+          </button>
         </div>
 
         {isLoading ? (
@@ -1260,7 +1295,7 @@ export function RealizationsContentAdminPanel() {
               (item) => (
                 <div
                   key={item.id}
-                  className="flex items-center justify-between gap-4 p-5"
+                  className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between"
                 >
                   <div>
                     <p className="font-bold">

@@ -923,6 +923,8 @@ export function AdsAdminPanel() {
 
           <div className="md:col-span-2">
             <AdminMediaSelect
+            defaultScope="campaigns"
+            uploadScope="campaigns"
               label="Image publicitaire"
               type="IMAGE"
               value={
