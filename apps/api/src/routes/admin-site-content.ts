@@ -530,12 +530,9 @@ adminSiteContentRouter.delete(
 
     try {
       const result =
-        await prisma.homeSlide.updateMany({
+        await prisma.homeSlide.deleteMany({
           where: {
             id,
-          },
-          data: {
-            active: false,
           },
         });
 
@@ -550,14 +547,14 @@ adminSiteContentRouter.delete(
       return response.status(204).send();
     } catch (error) {
       console.error(
-        'Erreur masquage slide accueil :',
+        'Erreur suppression slide accueil :',
         error,
       );
 
       return response.status(500).json({
         error: 'INTERNAL_ERROR',
         message:
-          'Impossible de masquer la slide.',
+          'Impossible de supprimer la slide.',
       });
     }
   },
@@ -732,12 +729,9 @@ adminSiteContentRouter.delete(
 
     try {
       const result =
-        await prisma.trustCard.updateMany({
+        await prisma.trustCard.deleteMany({
           where: {
             id,
-          },
-          data: {
-            active: false,
           },
         });
 
@@ -752,14 +746,14 @@ adminSiteContentRouter.delete(
       return response.status(204).send();
     } catch (error) {
       console.error(
-        'Erreur masquage carte confiance :',
+        'Erreur suppression carte confiance :',
         error,
       );
 
       return response.status(500).json({
         error: 'INTERNAL_ERROR',
         message:
-          'Impossible de masquer la carte de confiance.',
+          'Impossible de supprimer la carte de confiance.',
       });
     }
   },

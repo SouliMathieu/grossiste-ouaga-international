@@ -196,7 +196,7 @@ export function ServicesContentAdminPanel() {
   async function remove(id: number) {
     if (
       !window.confirm(
-        'Supprimer ce service ?',
+        'Supprimer définitivement ce service ? Cette action est irréversible.',
       )
     ) {
       return;

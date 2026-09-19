@@ -357,7 +357,7 @@ export function HomeContentAdminPanel() {
   ) {
     if (
       !window.confirm(
-        'Confirmer la suppression ?',
+        'Supprimer définitivement cet élément ? Cette action est irréversible.',
       )
     ) {
       return;

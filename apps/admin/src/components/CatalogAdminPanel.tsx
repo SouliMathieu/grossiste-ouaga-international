@@ -658,9 +658,9 @@ export function CatalogAdminPanel() {
 
     try {
       const response = await adminFetch(
-        `${API_BASE_URL}/api/admin/catalog/products/${product.id}`,
+        `${API_BASE_URL}/api/admin/catalog/products/${product.id}/archive`,
         {
-          method: 'DELETE',
+          method: 'PATCH',
           credentials: 'include',
         },
       );
@@ -687,6 +687,66 @@ export function CatalogAdminPanel() {
       );
     }
   }
+
+
+  async function deleteProduct(
+    product: Product,
+  ) {
+    const confirmed =
+      window.confirm(
+        `Supprimer définitivement "${product.name}" ?
+
+Cette action est irréversible.
+
+Les anciennes commandes conserveront leurs informations historiques.`,
+      );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setError(null);
+    setSuccess(null);
+
+    try {
+      const response =
+        await adminFetch(
+          `${API_BASE_URL}/api/admin/catalog/products/${product.id}`,
+          {
+            method: 'DELETE',
+            credentials:
+              'include',
+          },
+        );
+
+      if (!response.ok) {
+        const payload =
+          (await response
+            .json()
+            .catch(() => null)) as
+            | ApiResponse<unknown>
+            | null;
+
+        throw new Error(
+          payload?.message ??
+            'Impossible de supprimer définitivement le produit.',
+        );
+      }
+
+      await loadData();
+
+      setSuccess(
+        'Produit supprimé définitivement.',
+      );
+    } catch (caught) {
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : 'Une erreur inattendue est survenue.',
+      );
+    }
+  }
+
 
   return (
     <section
@@ -1663,7 +1723,7 @@ export function CatalogAdminPanel() {
                     </td>
 
                     <td className="p-4">
-                      <div className="flex gap-2">
+                      <div className="flex flex-wrap gap-2">
                         <button
                           type="button"
                           onClick={() =>
@@ -1698,6 +1758,18 @@ export function CatalogAdminPanel() {
                             Archiver
                           </button>
                         )}
+
+                        <button
+                          type="button"
+                          onClick={() =>
+                            void deleteProduct(
+                              product,
+                            )
+                          }
+                          className="min-h-10 rounded-lg border border-red-200 bg-white px-3 font-semibold text-red-700 transition hover:bg-red-50"
+                        >
+                          Supprimer définitivement
+                        </button>
                       </div>
                     </td>
                   </tr>

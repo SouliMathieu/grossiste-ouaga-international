@@ -365,26 +365,23 @@ adminContentRouter.delete(
         });
       }
 
-      await prisma.service.update({
+      await prisma.service.delete({
         where: {
           id,
-        },
-        data: {
-          active: false,
         },
       });
 
       return response.status(204).send();
     } catch (error) {
       console.error(
-        'Erreur masquage service :',
+        'Erreur suppression service :',
         error,
       );
 
       return response.status(500).json({
         error: 'INTERNAL_ERROR',
         message:
-          'Impossible de masquer le service.',
+          'Impossible de supprimer le service.',
       });
     }
   },
@@ -1209,27 +1206,23 @@ adminContentRouter.delete(
         });
       }
 
-      await prisma.realization.update({
+      await prisma.realization.delete({
         where: {
           id,
-        },
-        data: {
-          status: 'DRAFT',
-          featured: false,
         },
       });
 
       return response.status(204).send();
     } catch (error) {
       console.error(
-        'Erreur retrait réalisation :',
+        'Erreur suppression réalisation :',
         error,
       );
 
       return response.status(500).json({
         error: 'INTERNAL_ERROR',
         message:
-          'Impossible de retirer la réalisation.',
+          'Impossible de supprimer la réalisation.',
       });
     }
   },

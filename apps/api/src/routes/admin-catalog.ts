@@ -1464,8 +1464,8 @@ adminCatalogRouter.patch(
   },
 );
 
-adminCatalogRouter.delete(
-  '/products/:id',
+adminCatalogRouter.patch(
+  '/products/:id/archive',
   async (request, response) => {
     const productId = Number(request.params.id);
 
@@ -1484,6 +1484,9 @@ adminCatalogRouter.delete(
         await prisma.product.findUnique({
           where: {
             id: productId,
+          },
+          select: {
+            id: true,
           },
         });
 
@@ -1515,6 +1518,106 @@ adminCatalogRouter.delete(
         error: 'INTERNAL_ERROR',
         message:
           'Impossible d’archiver le produit.',
+      });
+    }
+  },
+);
+
+adminCatalogRouter.delete(
+  '/products/:id',
+  async (request, response) => {
+    const productId = Number(request.params.id);
+
+    if (
+      !Number.isInteger(productId) ||
+      productId <= 0
+    ) {
+      return response.status(400).json({
+        error: 'INVALID_PRODUCT_ID',
+        message: 'Identifiant produit invalide.',
+      });
+    }
+
+    try {
+      const [
+        existing,
+        adCampaignCount,
+      ] = await Promise.all([
+        prisma.product.findUnique({
+          where: {
+            id: productId,
+          },
+          select: {
+            id: true,
+          },
+        }),
+
+        prisma.adCampaign.count({
+          where: {
+            productId,
+          },
+        }),
+      ]);
+
+      if (!existing) {
+        return response.status(404).json({
+          error: 'PRODUCT_NOT_FOUND',
+          message:
+            'Ce produit est introuvable.',
+        });
+      }
+
+      if (adCampaignCount > 0) {
+        return response.status(409).json({
+          error:
+            'PRODUCT_HAS_AD_CAMPAIGNS',
+          message:
+            'Ce produit possède un historique publicitaire et ne peut pas être supprimé définitivement. Archivez-le à la place.',
+        });
+      }
+
+      await prisma.$transaction(
+        async (tx) => {
+          /*
+           * Les lignes de commande conservent déjà
+           * les snapshots nom / SKU / prix / unité.
+           * On détache donc uniquement l'identifiant
+           * technique du produit avant suppression.
+           */
+          await tx.orderItem.updateMany({
+            where: {
+              productId,
+            },
+            data: {
+              productId: null,
+            },
+          });
+
+          /*
+           * Les relations ProductMedia,
+           * ProductAttribute, ServiceProduct et
+           * RealizationProduct sont configurées
+           * avec onDelete: Cascade.
+           */
+          await tx.product.delete({
+            where: {
+              id: productId,
+            },
+          });
+        },
+      );
+
+      return response.status(204).send();
+    } catch (error) {
+      console.error(
+        'Erreur suppression définitive produit admin :',
+        error,
+      );
+
+      return response.status(500).json({
+        error: 'INTERNAL_ERROR',
+        message:
+          'Impossible de supprimer définitivement le produit.',
       });
     }
   },

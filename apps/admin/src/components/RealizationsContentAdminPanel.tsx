@@ -477,7 +477,7 @@ export function RealizationsContentAdminPanel() {
   async function remove(id: number) {
     if (
       !window.confirm(
-        'Supprimer cette réalisation ?',
+        'Supprimer définitivement cette réalisation ? Cette action est irréversible.',
       )
     ) {
       return;
