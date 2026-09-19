@@ -161,6 +161,8 @@ export function App() {
         },
       );
     } finally {
+      setPassword('');
+      setLoginError(null);
       setAdmin(null);
     }
   }
@@ -328,7 +330,7 @@ export function App() {
     <BrowserRouter>
       <AdminShell
         admin={admin}
-        onLogout={() => void handleLogout()}
+        onLogout={handleLogout}
       >
         <Routes>
           <Route

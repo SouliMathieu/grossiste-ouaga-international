@@ -33,7 +33,7 @@ type Admin = {
 
 type AdminShellProps = {
   admin: Admin;
-  onLogout: () => void;
+  onLogout: () => void | Promise<void>;
   children: ReactNode;
 };
 
@@ -165,6 +165,8 @@ export function AdminShell({
 }: AdminShellProps) {
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] =
+    useState(false);
 
   const meta =
     pageMeta[location.pathname] ?? pageMeta['/']!;
@@ -172,6 +174,20 @@ export function AdminShell({
   useEffect(() => {
     setMenuOpen(false);
   }, [location.pathname]);
+
+  async function handleLogoutClick() {
+    if (isLoggingOut) {
+      return;
+    }
+
+    setIsLoggingOut(true);
+
+    try {
+      await onLogout();
+    } finally {
+      setIsLoggingOut(false);
+    }
+  }
 
   const sidebar = (
     <>
@@ -191,7 +207,7 @@ export function AdminShell({
         </div>
       </div>
 
-      <nav className="flex-1 p-3">
+      <nav className="min-h-0 flex-1 overflow-y-auto p-3">
         <p className="px-3 pb-2 pt-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
           Navigation
         </p>
@@ -220,32 +236,6 @@ export function AdminShell({
         </div>
       </nav>
 
-      <div className="border-t border-white/10 p-3">
-        <div className="mb-2 flex items-center gap-3 rounded-xl bg-white/5 p-3">
-          <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-slate-700 text-xs font-bold text-white">
-            {getInitials(admin.fullName)}
-          </div>
-
-          <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-white">
-              {admin.fullName}
-            </p>
-
-            <p className="truncate text-xs text-slate-400">
-              {admin.role}
-            </p>
-          </div>
-        </div>
-
-        <button
-          type="button"
-          onClick={onLogout}
-          className="flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-sm font-semibold text-slate-300 transition hover:bg-red-500/10 hover:text-red-300"
-        >
-          <LogOut size={18} />
-          Déconnexion
-        </button>
-      </div>
     </>
   );
 
@@ -301,13 +291,31 @@ export function AdminShell({
               </p>
             </div>
 
-            <div className="ml-auto flex items-center gap-3">
+            <div className="ml-auto flex items-center gap-2 sm:gap-3">
               <div className="hidden items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600 md:flex">
                 <Settings2 size={16} />
                 {admin.role}
               </div>
 
-              <div className="flex size-10 items-center justify-center rounded-full bg-slate-900 text-xs font-bold text-white">
+              <button
+                type="button"
+                onClick={() =>
+                  void handleLogoutClick()
+                }
+                disabled={isLoggingOut}
+                title="Déconnexion"
+                className="flex min-h-10 items-center gap-2 rounded-xl border border-red-200 bg-white px-3 text-sm font-semibold text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <LogOut size={17} />
+
+                <span className="hidden sm:inline">
+                  {isLoggingOut
+                    ? 'Déconnexion...'
+                    : 'Déconnexion'}
+                </span>
+              </button>
+
+              <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-slate-900 text-xs font-bold text-white">
                 {getInitials(admin.fullName)}
               </div>
             </div>
