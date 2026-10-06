@@ -5,22 +5,31 @@ import { PrismaClient } from '../generated/prisma/client.js';
 const databaseUrl = process.env.DATABASE_URL;
 
 if (!databaseUrl) {
-  throw new Error('DATABASE_URL est manquant dans apps/api/.env');
+  throw new Error(
+    'DATABASE_URL est manquant dans apps/api/.env',
+  );
 }
 
 const url = new URL(databaseUrl);
 
 const databaseCaCert =
-  process.env.AIVEN_CA_CERT?.replaceAll('\\n', '\n');
+  process.env.AIVEN_CA_CERT?.replaceAll(
+    '\\n',
+    '\n',
+  );
 
 const adapter = new PrismaMariaDb({
   host: url.hostname,
   port: Number(url.port || 3306),
   user: decodeURIComponent(url.username),
   password: decodeURIComponent(url.password),
-  database: decodeURIComponent(url.pathname.replace(/^\//, '')),
+  database: decodeURIComponent(
+    url.pathname.replace(/^\//, ''),
+  ),
   ssl: databaseCaCert
-    ? { ca: [databaseCaCert] }
+    ? {
+        ca: databaseCaCert,
+      }
     : undefined,
   connectionLimit: 5,
   connectTimeout: 10000,
