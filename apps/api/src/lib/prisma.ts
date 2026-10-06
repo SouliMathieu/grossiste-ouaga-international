@@ -10,13 +10,20 @@ if (!databaseUrl) {
 
 const url = new URL(databaseUrl);
 
+const databaseCaCert =
+  process.env.AIVEN_CA_CERT?.replaceAll('\\n', '\n');
+
 const adapter = new PrismaMariaDb({
   host: url.hostname,
   port: Number(url.port || 3306),
   user: decodeURIComponent(url.username),
   password: decodeURIComponent(url.password),
   database: decodeURIComponent(url.pathname.replace(/^\//, '')),
+  ssl: databaseCaCert
+    ? { ca: [databaseCaCert] }
+    : undefined,
   connectionLimit: 5,
+  connectTimeout: 10000,
   allowPublicKeyRetrieval: true,
 });
 
