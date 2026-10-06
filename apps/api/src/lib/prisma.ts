@@ -26,11 +26,13 @@ const adapter = new PrismaMariaDb({
   database: decodeURIComponent(
     url.pathname.replace(/^\//, ''),
   ),
-  ssl: databaseCaCert
+  ...(databaseCaCert
     ? {
-        ca: databaseCaCert,
+        ssl: {
+          ca: databaseCaCert,
+        },
       }
-    : undefined,
+    : {}),
   connectionLimit: 5,
   connectTimeout: 10000,
   allowPublicKeyRetrieval: true,
