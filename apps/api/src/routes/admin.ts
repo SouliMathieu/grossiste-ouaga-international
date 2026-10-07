@@ -17,6 +17,11 @@ export const adminRouter = Router();
 
 const ADMIN_SESSION_DURATION_MS = 12 * 60 * 60 * 1000;
 
+const adminCookieSameSite =
+  env.NODE_ENV === 'production'
+    ? ('none' as const)
+    : ('lax' as const);
+
 const loginSchema = z.object({
   email: z.string().trim().email().max(191),
   password: z.string().min(8).max(128),
@@ -107,7 +112,7 @@ function getCookieOptions() {
   return {
     httpOnly: true,
     secure: env.NODE_ENV === 'production',
-    sameSite: 'lax' as const,
+    sameSite: adminCookieSameSite,
     path: '/api/admin',
     maxAge: ADMIN_SESSION_DURATION_MS,
   };
@@ -406,7 +411,7 @@ adminRouter.post('/auth/logout', async (request, response) => {
   response.clearCookie(ADMIN_SESSION_COOKIE, {
     httpOnly: true,
     secure: env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    sameSite: adminCookieSameSite,
     path: '/api/admin',
   });
 
